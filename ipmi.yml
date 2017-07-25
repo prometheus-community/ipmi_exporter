@@ -1,0 +1,24 @@
+credentials:
+        default:
+                user: "default_user"
+                pass: "example_pw"
+        10.8.0.2:
+                user: "host_specific_user"
+                pass: "another_pw"
+
+exclude_sensor_ids:
+  - 2
+  - 29
+  - 32
+  - 50
+  - 52
+  - 55
+  - 80
+  - 81
+  - 82
+  - 83
+  - 84
+  - 85
+  - 86
+  - 87
+  
