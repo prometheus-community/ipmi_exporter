@@ -2,14 +2,19 @@ package main
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/csv"
+	"encoding/hex"
 	"fmt"
 	"math"
+	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -153,14 +158,53 @@ var (
 	)
 )
 
+func pipeName() string {
+	randBytes := make([]byte, 16)
+	rand.Read(randBytes)
+	return filepath.Join(os.TempDir(), "ipmi_exporter-"+hex.EncodeToString(randBytes))
+}
+
+func freeipmiConfig(driver, user, password string) string {
+	return fmt.Sprintf(`
+driver-type %s
+privilege-level admin
+username %s
+password %s
+	`, driver, user, password)
+}
+
+func freeipmiConfigPipe(driver, user, password string) (string, error) {
+	content := []byte(freeipmiConfig(driver, user, password))
+	pipe := pipeName()
+	err := syscall.Mkfifo(pipe, 0600)
+	if err != nil {
+		return "", err
+	}
+
+	go func(file string, data []byte) {
+		f, err := os.OpenFile(file, os.O_WRONLY|os.O_CREATE|os.O_APPEND, os.ModeNamedPipe)
+		if err != nil {
+			log.Errorf("Error opening pipe: %s", err)
+		}
+		if _, err := f.Write(data); err != nil {
+			log.Errorf("Error writing config to pipe: %s", err)
+		}
+		f.Close()
+	}(pipe, content)
+	return pipe, nil
+}
+
 func freeipmiOutput(cmd, host, user, password string, arg ...string) ([]byte, error) {
+	pipe, err := freeipmiConfigPipe("LAN_2_0", user, password)
+	if err != nil {
+		return nil, err
+	}
+	defer os.Remove(pipe)
+
 	fqcmd := path.Join(*executablesPath, cmd)
 	args := []string{
-		"-D", "LAN_2_0",
-		"-l", "admin",
+		"--config-file", pipe,
 		"-h", host,
-		"-u", user,
-		"-p", password,
 	}
 	args = append(args, arg...)
 	out, err := exec.Command(fqcmd, args...).CombinedOutput()
