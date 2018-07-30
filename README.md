@@ -5,8 +5,8 @@ This is an IPMI over LAN exporter for [Prometheus](https://prometheus.io).
 
 An instance running on one host can be used to monitor a large number of IPMI
 interfaces by passing the `target` parameter to a scrape. It uses tools from
-the [FreeIPMI](https://www.thomas-krenn.com/en/wiki/FreeIPMI_ipmimonitoring)
-suite for the actual IPMI communication.
+the [FreeIPMI](https://www.gnu.org/software/freeipmi/) suite for the actual
+IPMI communication.
 
 ## Installation
 
@@ -27,9 +27,8 @@ Supported parameters include:
  - `config.file`: path to the configuration file (default: `ipmi.yml`)
  - `path`: path to the FreeIPMI executables (default: rely on `$PATH`)
 
-Make sure you have at least the following tools from the
-[FreeIPMI](https://www.thomas-krenn.com/en/wiki/FreeIPMI_ipmimonitoring) suite
-installed:
+Make sure you have the following tools from the
+[FreeIPMI](https://www.gnu.org/software/freeipmi/) suite installed:
 
  - `ipmimonitoring`
  - `ipmi-dcmi`
@@ -126,10 +125,17 @@ documentation](https://prometheus.io/docs).
 
 ### Scrape meta data
 
-There are two metrics providing data about the scrape itself:
+These metrics provide data about the scrape itself:
 
- - `ipmi_up` is `1` if all data could successfully be retrieved from the remote
-   host, `0` otherwise
+ - `ipmi_up{collector="<NAME>"}` is `1` if the data for this collector could
+   successfully be retrieved from the remote host, `0` otherwise. The following
+   collectors are available:
+   - `ipmi`: collects IPMI sensor data. If it fails, sensor metrics (see below)
+     will not be available
+   - `dcmi`: collects DCMI data, currently only power consumption. If it fails,
+     power consumption metrics (see below) will not be available
+   - `bmc`: collects BMC details. If if fails, BMC info metrics (see below)
+     will not be available
  - `ipmi_scrape_duration_seconds` is the amount of time it took to retrieve the
    data
 
