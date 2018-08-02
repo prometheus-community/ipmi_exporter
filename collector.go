@@ -146,7 +146,7 @@ var (
 	upDesc = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "", "up"),
 		"'1' if a scrape of the IPMI device was successful, '0' otherwise.",
-		nil,
+		[]string{"collector"},
 		nil,
 	)
 
@@ -348,17 +348,17 @@ func collectGenericSensor(ch chan<- prometheus.Metric, state float64, data senso
 	)
 }
 
-func (c collector) collectMonitoring(ch chan<- prometheus.Metric, creds Credentials) error {
+func (c collector) collectMonitoring(ch chan<- prometheus.Metric, creds Credentials) (int, error) {
 	output, err := ipmiMonitoringOutput(c.target, creds.User, creds.Password)
 	if err != nil {
-		log.Errorln(err)
-		return err
+		log.Errorf("Failed to collect ipmimonitoring data: %s", err)
+		return 0, err
 	}
 	excludeIds := c.config.ExcludeSensorIDs()
 	results, err := splitMonitoringOutput(output, excludeIds)
 	if err != nil {
-		log.Errorln(err)
-		return err
+		log.Errorf("Failed to parse ipmimonitoring data: %s", err)
+		return 0, err
 	}
 	for _, data := range results {
 		var state float64
@@ -394,41 +394,71 @@ func (c collector) collectMonitoring(ch chan<- prometheus.Metric, creds Credenti
 			collectGenericSensor(ch, state, data)
 		}
 	}
-	return nil
+	return 1, nil
 }
 
-func (c collector) getPowerConsumption(creds Credentials) (float64, error) {
+func (c collector) collectDCMI(ch chan<- prometheus.Metric, creds Credentials) (int, error) {
 	output, err := ipmiDCMIOutput(c.target, creds.User, creds.Password)
 	if err != nil {
-		log.Errorln(err)
-		return float64(-1), err
+		log.Debugf("Failed to collect ipmi-dcmi data: %s", err)
+		return 0, err
 	}
-	return getCurrentPowerConsumption(output)
+	currentPowerConsumption, err := getCurrentPowerConsumption(output)
+	if err != nil {
+		log.Errorf("Failed to parse ipmi-dcmi data: %s", err)
+		return 0, err
+	}
+	ch <- prometheus.MustNewConstMetric(
+		powerConsumption,
+		prometheus.GaugeValue,
+		currentPowerConsumption,
+	)
+	return 0, nil
 }
 
-func (c collector) getBmcInfo(creds Credentials) (string, string, error) {
+func (c collector) collectBmcInfo(ch chan<- prometheus.Metric, creds Credentials) (int, error) {
 	output, err := bmcInfoOutput(c.target, creds.User, creds.Password)
 	if err != nil {
-		log.Errorln(err)
-		return "", "", err
+		log.Debugf("Failed to collect bmc-info data: %s", err)
+		return 0, err
 	}
 	firmwareRevision, err := getBMCInfoFirmwareRevision(output)
 	if err != nil {
-		return "", "", err
+		log.Errorf("Failed to parse bmc-info data: %s", err)
+		return 0, err
 	}
 	manufacturerID, err := getBMCInfoManufacturerID(output)
 	if err != nil {
-		return "", "", err
+		log.Errorf("Failed to parse bmc-info data: %s", err)
+		return 0, err
 	}
-
-	return firmwareRevision, manufacturerID, nil
+	ch <- prometheus.MustNewConstMetric(
+		bmcInfo,
+		prometheus.GaugeValue,
+		1,
+		firmwareRevision, manufacturerID,
+	)
+	return 1, nil
 }
 
-func (c collector) markAsDown(ch chan<- prometheus.Metric) {
+func (c collector) markCollectorsUp(ch chan<- prometheus.Metric, bmc, dcmi, ipmi int) {
 	ch <- prometheus.MustNewConstMetric(
 		upDesc,
 		prometheus.GaugeValue,
-		float64(0),
+		float64(bmc),
+		"bmc",
+	)
+	ch <- prometheus.MustNewConstMetric(
+		upDesc,
+		prometheus.GaugeValue,
+		float64(dcmi),
+		"dcmi",
+	)
+	ch <- prometheus.MustNewConstMetric(
+		upDesc,
+		prometheus.GaugeValue,
+		float64(ipmi),
+		"ipmi",
 	)
 }
 
@@ -448,47 +478,15 @@ func (c collector) Collect(ch chan<- prometheus.Metric) {
 	creds, err := c.config.CredentialsForTarget(c.target)
 	if err != nil {
 		log.Errorf("No credentials available for target %s.", c.target)
-		c.markAsDown(ch)
+		c.markCollectorsUp(ch, 0, 0, 0)
 		return
 	}
 
-	firmwareRevision, manufacturerID, err := c.getBmcInfo(creds)
-	if err != nil {
-		log.Errorf("Could not collect bmc-info metrics: %s", err)
-		c.markAsDown(ch)
-		return
-	}
+	ipmiUp, _ := c.collectMonitoring(ch, creds)
+	dcmiUp, _ := c.collectDCMI(ch, creds)
+	bmcUp, _ := c.collectBmcInfo(ch, creds)
 
-	currentPowerConsumption, err := c.getPowerConsumption(creds)
-	if err != nil {
-		log.Errorf("Could not collect ipmi-dcmi power metrics: %s", err)
-		c.markAsDown(ch)
-		return
-	}
-
-	err = c.collectMonitoring(ch, creds)
-	if err != nil {
-		log.Errorf("Could not collect ipmimonitoring sensor metrics: %s", err)
-		c.markAsDown(ch)
-		return
-	}
-
-	ch <- prometheus.MustNewConstMetric(
-		bmcInfo,
-		prometheus.GaugeValue,
-		1,
-		firmwareRevision, manufacturerID,
-	)
-	ch <- prometheus.MustNewConstMetric(
-		powerConsumption,
-		prometheus.GaugeValue,
-		currentPowerConsumption,
-	)
-	ch <- prometheus.MustNewConstMetric(
-		upDesc,
-		prometheus.GaugeValue,
-		1,
-	)
+	c.markCollectorsUp(ch, bmcUp, dcmiUp, ipmiUp)
 }
 
 func contains(s []int64, elm int64) bool {
