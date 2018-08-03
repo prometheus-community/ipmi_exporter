@@ -413,7 +413,7 @@ func (c collector) collectDCMI(ch chan<- prometheus.Metric, creds Credentials) (
 		prometheus.GaugeValue,
 		currentPowerConsumption,
 	)
-	return 0, nil
+	return 1, nil
 }
 
 func (c collector) collectBmcInfo(ch chan<- prometheus.Metric, creds Credentials) (int, error) {
