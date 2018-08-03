@@ -34,7 +34,7 @@ var (
 	reloadCh chan chan error
 )
 
-func handler(w http.ResponseWriter, r *http.Request) {
+func remoteIpmiHandler(w http.ResponseWriter, r *http.Request) {
 	target := r.URL.Query().Get("target")
 	if target == "" {
 		http.Error(w, "'target' parameter must be specified", 400)
@@ -43,8 +43,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	log.Debugf("Scraping target '%s'", target)
 
 	registry := prometheus.NewRegistry()
-	collector := collector{target: target, config: sc}
-	registry.MustRegister(collector)
+	remoteCollector := collector{target: target, config: sc}
+	registry.MustRegister(remoteCollector)
 	h := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
 	h.ServeHTTP(w, r)
 }
@@ -94,8 +94,11 @@ func main() {
 		}
 	}()
 
-	http.Handle("/metrics", promhttp.Handler())       // Normal metrics endpoint for IPMI exporter itself.
-	http.HandleFunc("/ipmi", handler)                 // Endpoint to do IPMI scrapes.
+	localCollector := collector{target: targetLocal, config: sc}
+	prometheus.MustRegister(&localCollector)
+
+	http.Handle("/metrics", promhttp.Handler())       // Regular metrics endpoint for local IPMI metrics.
+	http.HandleFunc("/ipmi", remoteIpmiHandler)       // Endpoint to do IPMI scrapes.
 	http.HandleFunc("/-/reload", updateConfiguration) // Endpoint to reload configuration.
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -120,8 +123,9 @@ func main() {
             <form action="/ipmi">
             <label>Target:</label> <input type="text" name="target" placeholder="X.X.X.X" value="1.2.3.4"><br>
             <input type="submit" value="Submit">
-            </form>
-						<p><a href="/config">Config</a></p>
+			</form>
+			<p><a href="/metrics">Local metrics</a></p>
+			<p><a href="/config">Config</a></p>
             </body>
             </html>`))
 	})
