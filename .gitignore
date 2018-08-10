@@ -1,5 +1,2 @@
 ipmi_exporter
 *.tar.gz
-
-# Vscode files
-.vscode
