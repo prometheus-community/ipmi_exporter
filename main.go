@@ -58,8 +58,9 @@ func updateConfiguration(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, fmt.Sprintf("failed to reload config: %s", err), http.StatusInternalServerError)
 		}
 	default:
-		log.Errorf("POST method expected")
-		http.Error(w, "POST method expected", 400)
+		log.Errorf("Only POST requests allowed for %s", r.URL)
+		w.Header().Set("Allow", "POST")
+		http.Error(w, "Only POST requests allowed", http.StatusMethodNotAllowed)
 	}
 }
 
