@@ -21,9 +21,10 @@ import (
 	"github.com/prometheus/common/log"
 )
 
-const namespace = "ipmi"
-
-const targetLocal = ""
+const (
+	namespace   = "ipmi"
+	targetLocal = ""
+)
 
 var (
 	ipmiDCMICurrentPowerRegex    = regexp.MustCompile(`^Current Power\s*:\s*(?P<value>[0-9.]*)\s*Watts.*`)

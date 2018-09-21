@@ -34,7 +34,7 @@ var (
 	reloadCh chan chan error
 )
 
-func remoteIpmiHandler(w http.ResponseWriter, r *http.Request) {
+func remoteIPMIHandler(w http.ResponseWriter, r *http.Request) {
 	target := r.URL.Query().Get("target")
 	if target == "" {
 		http.Error(w, "'target' parameter must be specified", 400)
@@ -98,7 +98,7 @@ func main() {
 	prometheus.MustRegister(&localCollector)
 
 	http.Handle("/metrics", promhttp.Handler())       // Regular metrics endpoint for local IPMI metrics.
-	http.HandleFunc("/ipmi", remoteIpmiHandler)       // Endpoint to do IPMI scrapes.
+	http.HandleFunc("/ipmi", remoteIPMIHandler)       // Endpoint to do IPMI scrapes.
 	http.HandleFunc("/-/reload", updateConfiguration) // Endpoint to reload configuration.
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
