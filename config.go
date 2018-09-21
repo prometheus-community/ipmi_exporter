@@ -12,9 +12,7 @@ import (
 
 // Config is the Go representation of the yaml config file.
 type Config struct {
-	Credentials map[string]Credentials `yaml:"credentials"`
-
-	ExcludeSensorIDs []int64 `yaml:"exclude_sensor_ids"`
+	Modules map[string]IPMIConfig `yaml:"modules"`
 
 	// Catches all undefined fields and must be empty after parsing.
 	XXX map[string]interface{} `yaml:",inline"`
@@ -26,15 +24,24 @@ type SafeConfig struct {
 	C *Config
 }
 
-// Credentials is the Go representation of the credentials section in the yaml
+// IPMIConfig is the Go representation of a module configuration in the yaml
 // config file.
-type Credentials struct {
-	User     string `yaml:"user"`
-	Password string `yaml:"pass"`
+type IPMIConfig struct {
+	User             string   `yaml:"user"`
+	Password         string   `yaml:"pass"`
+	Privilege        string   `yaml:"privilege"`
+	Driver           string   `yaml:"driver"`
+	Collectors       []string `yaml:"collectors"`
+	ExcludeSensorIDs []int64  `yaml:"exclude_sensor_ids"`
 
 	// Catches all undefined fields and must be empty after parsing.
 	XXX map[string]interface{} `yaml:",inline"`
 }
+
+var emptyConfig = IPMIConfig{Collectors: []string{"ipmi", "dcmi", "bmc"}}
+
+// CollectorName is used for unmarshaling the list of collectors in the yaml config file
+type CollectorName string
 
 func checkOverflow(m map[string]interface{}, ctx string) error {
 	if len(m) > 0 {
@@ -60,13 +67,19 @@ func (s *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 }
 
 // UnmarshalYAML implements the yaml.Unmarshaler interface.
-func (s *Credentials) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	type plain Credentials
+func (s *IPMIConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	*s = emptyConfig
+	type plain IPMIConfig
 	if err := unmarshal((*plain)(s)); err != nil {
 		return err
 	}
-	if err := checkOverflow(s.XXX, "credentials"); err != nil {
+	if err := checkOverflow(s.XXX, "modules"); err != nil {
 		return err
+	}
+	for _, c := range s.Collectors {
+		if !(c == "ipmi" || c == "dcmi" || c == "bmc") {
+			return fmt.Errorf("unknown collector name: %s", c)
+		}
 	}
 	return nil
 }
@@ -75,15 +88,20 @@ func (s *Credentials) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // is unreadable or unparsable, an error is returned and the old config is kept.
 func (sc *SafeConfig) ReloadConfig(configFile string) error {
 	var c = &Config{}
+	var config []byte
+	var err error
 
-	yamlFile, err := ioutil.ReadFile(configFile)
-	if err != nil {
-		log.Errorf("Error reading config file: %s", err)
-		return err
+	if configFile != "" {
+		config, err = ioutil.ReadFile(configFile)
+		if err != nil {
+			log.Errorf("Error reading config file: %s", err)
+			return err
+		}
+	} else {
+		config = []byte("# use empty file as default")
 	}
 
-	if err := yaml.Unmarshal(yamlFile, c); err != nil {
-		log.Errorf("Error parsing config file: %s", err)
+	if err = yaml.Unmarshal(config, c); err != nil {
 		return err
 	}
 
@@ -91,34 +109,46 @@ func (sc *SafeConfig) ReloadConfig(configFile string) error {
 	sc.C = c
 	sc.Unlock()
 
-	log.Infoln("Loaded config file")
+	if configFile != "" {
+		log.Infoln("Loaded config file", configFile)
+	}
 	return nil
 }
 
-// CredentialsForTarget returns the Credentials for a given target, or the
-// default. It is concurrency-safe.
-func (sc *SafeConfig) CredentialsForTarget(target string) (Credentials, error) {
+// HasModule returns true if a given module is configured. It is concurrency-safe.
+func (sc *SafeConfig) HasModule(module string) bool {
 	sc.Lock()
 	defer sc.Unlock()
-	if credentials, ok := sc.C.Credentials[target]; ok {
-		return Credentials{
-			User:     credentials.User,
-			Password: credentials.Password,
-		}, nil
-	}
-	if credentials, ok := sc.C.Credentials["default"]; ok {
-		return Credentials{
-			User:     credentials.User,
-			Password: credentials.Password,
-		}, nil
-	}
-	return Credentials{}, fmt.Errorf("no credentials found for target %s", target)
+
+	_, ok := sc.C.Modules[module]
+	return ok
 }
 
-// ExcludeSensorIDs returns the list of excluded sensor IDs in a
-// concurrency-safe way.
-func (sc *SafeConfig) ExcludeSensorIDs() []int64 {
+// ConfigForTarget returns the config for a given target/module, or the
+// default. It is concurrency-safe.
+func (sc *SafeConfig) ConfigForTarget(target, module string) IPMIConfig {
 	sc.Lock()
 	defer sc.Unlock()
-	return sc.C.ExcludeSensorIDs
+
+	var config IPMIConfig
+	var ok = false
+
+	if module != "default" {
+		config, ok = sc.C.Modules[module]
+		if !ok {
+			log.Errorf("Requested module %s for target %s not found, using default", module, targetName(target))
+		}
+	}
+
+	// If nothing found, fall back to defaults
+	if !ok {
+		config, ok = sc.C.Modules["default"]
+		if !ok {
+			// This is probably fine for running locally, so not making this a warning
+			log.Debugf("Needed default config for target %s, but none configured, using FreeIPMI defaults", targetName(target))
+			config = emptyConfig
+		}
+	}
+
+	return config
 }

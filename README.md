@@ -29,17 +29,17 @@ A minimal invocation looks like this:
 Supported parameters include:
 
  - `web.listen-address`: the address/port to listen on (default: `":9290"`)
- - `config.file`: path to the configuration file (default: `ipmi.yml`)
+ - `config.file`: path to the configuration file (default: none)
  - `freeipmi.path`: path to the FreeIPMI executables (default: rely on `$PATH`)
 
-For a complete list of available parameters, run:
+For syntax and a complete list of available parameters, run:
 
     ./ipmi_exporter -h
 
 Make sure you have the following tools from the
 [FreeIPMI](https://www.gnu.org/software/freeipmi/) suite installed:
 
- - `ipmimonitoring`
+ - `ipmimonitoring`/`ipmi-sensors`
  - `ipmi-dcmi`
  - `bmc-info`
 
@@ -51,26 +51,34 @@ local IPMI metrics. No special configuration is required.
 For remote metrics, the general configuration pattern is similar to that of the
 [blackbox exporter](https://github.com/prometheus/blackbox_exporter), i.e.
 Prometheus scrapes a small number (possibly one) of IPMI exporters with a
-`target` URL parameter to tell the exporter which IPMI device it should use to
-retrieve the IPMI metrics. We offer this approach as IPMI devices often provide
-useful information even while the supervised host is turned off.  If you are
-running the exporter on a separate host anyway, it makes more sense to have
-only a few of them, each probing many (possibly thousands of) IPMI devices,
-rather than one exporter per IPMI device.
+`target` and `module` URL parameter to tell the exporter which IPMI device it
+should use to retrieve the IPMI metrics. We offer this approach as IPMI devices
+often provide useful information even while the supervised host is turned off.
+If you are running the exporter on a separate host anyway, it makes more sense
+to have only a few of them, each probing many (possibly thousands of) IPMI
+devices, rather than one exporter per IPMI device.
 
 ### IPMI exporter
 
-The exporter requires a configuration file called `ipmi.yml` (can be
-overridden, see above). To collect local metrics, an empty file is technically
-sufficient.  For remote metrics, it must contain user names and passwords for
-IPMI access to all targets. It supports a “default” target, which is used as
-fallback if the target is not explicitly listed in the file.
+The exporter can read a configuration file by setting `config.file` (see
+above). To collect local metrics, you might not even need one. For
+remote metrics, it must contain at least user names and passwords for IPMI
+access to all targets to be scraped. You can additionally specify the IPMI
+driver type and privilege level to use (see `man 5 freeipmi.conf` for more
+details and possible values).
+
+The config file supports the notion of "modules", so that different
+configurations can be re-used for groups of targets. See the section below on
+how to set the module parameter in Prometheus. The special module "default" is
+used in case the scrape does not request a specific module.
 
 The configuration file also supports a blacklist of sensors, useful in case of
 OEM-specific sensors that FreeIPMI cannot deal with properly or otherwise
 misbehaving sensors. This applies to both local and remote metrics.
 
-See the included `ipmi.yml` file for an example.
+There are two commented example configuration files, see `ipmi_local.yml` for
+scraping local host metrics and `ipmi_remote.yml` for scraping remote IPMI
+interfaces.
 
 ### Prometheus
 
@@ -123,6 +131,8 @@ add the following to your Prometheus config:
 
 ```
 - job_name: ipmi
+  params:
+    module: default
   scrape_interval: 1m
   scrape_timeout: 30s
   metrics_path: /ipmi
@@ -134,7 +144,7 @@ add the following to your Prometheus config:
   relabel_configs:
   - source_labels: [__address__]
     separator: ;
-    regex: (.*)(:80)?
+    regex: (.*)
     target_label: __param_target
     replacement: ${1}
     action: replace
@@ -151,6 +161,26 @@ add the following to your Prometheus config:
     action: replace
 ```
 
+This assumes that all hosts use the default module. If you are using modules in
+the config file, like in the provided `ipmi_remote.yml` example config, you
+will need to specify on job for each module, using the respective group of
+targets.
+
+In a more extreme case, for example if you are using different passwords on
+every host, a good approach is to generate an exporter config file that uses
+the target name as module names, which would allow you to have single job that
+uses label replace to set the module. Leave out the `params` in the job
+definition and instead add a relabel rule like this one:
+
+```
+  - source_labels: [__address__]
+    separator: ;
+    regex: (.*)
+    target_label: __param_module
+    replacement: ${1}
+    action: replace
+```
+
 For more information, e.g. how to use mechanisms other than a file to discover
 the list of hosts to scrape, please refer to the [Prometheus
 documentation](https://prometheus.io/docs).
@@ -163,7 +193,7 @@ These metrics provide data about the scrape itself:
 
  - `ipmi_up{collector="<NAME>"}` is `1` if the data for this collector could
    successfully be retrieved from the remote host, `0` otherwise. The following
-   collectors are available:
+   collectors are available and can be enabled or disabled in the config:
    - `ipmi`: collects IPMI sensor data. If it fails, sensor metrics (see below)
      will not be available
    - `dcmi`: collects DCMI data, currently only power consumption. If it fails,
@@ -175,6 +205,8 @@ These metrics provide data about the scrape itself:
 
 ### BMC info
 
+This metric is only provided if the `bmc` collector is enabled.
+
 For some basic information, there is a constant metric `ipmi_bmc_info` with
 value `1` and labels providing the firmware revision and manufacturer as
 returned from the BMC. Example:
@@ -183,12 +215,16 @@ returned from the BMC. Example:
 
 ### Power consumption
 
+This metric is only provided if the `dcmi` collector is enabled.
+
 The metric `ipmi_dcmi_power_consumption_current_watts` can be used to monitor
 the live power consumption of the machine in Watts. If in doubt, this metric
 should be used over any of the sensor data (see below), even if their name
 might suggest that they measure the same thing. This metric has no labels.
 
 ### Sensors
+
+These metric are only provided if the `ipmi` collector is enabled.
 
 IPMI sensors in general have one or two distinct pieces of information that are
 of interest: a value and/or a state. The exporter always exports both, even if

@@ -17,7 +17,7 @@ var (
 	configFile = kingpin.Flag(
 		"config.file",
 		"Path to configuration file.",
-	).Default("ipmi.yml").String()
+	).String()
 	executablesPath = kingpin.Flag(
 		"freeipmi.path",
 		"Path to FreeIPMI executables (default: rely on $PATH).",
@@ -39,10 +39,21 @@ func remoteIPMIHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "'target' parameter must be specified", 400)
 		return
 	}
-	log.Debugf("Scraping target '%s'", target)
+
+	// Remote scrape will not work without some kind of config, so be pedantic about it
+	module := r.URL.Query().Get("module")
+	if module == "" {
+		module = "default"
+	}
+	if !sc.HasModule(module) {
+		http.Error(w, fmt.Sprintf("Unknown module %q", module), http.StatusBadRequest)
+		return
+	}
+
+	log.Debugf("Scraping target '%s' with module '%s'", target, module)
 
 	registry := prometheus.NewRegistry()
-	remoteCollector := collector{target: target, config: sc}
+	remoteCollector := collector{target: target, module: module, config: sc}
 	registry.MustRegister(remoteCollector)
 	h := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
 	h.ServeHTTP(w, r)
@@ -95,7 +106,7 @@ func main() {
 		}
 	}()
 
-	localCollector := collector{target: targetLocal, config: sc}
+	localCollector := collector{target: targetLocal, module: "default", config: sc}
 	prometheus.MustRegister(&localCollector)
 
 	http.Handle("/metrics", promhttp.Handler())       // Regular metrics endpoint for local IPMI metrics.
