@@ -47,10 +47,9 @@ type sensorData struct {
 	Event string
 }
 
-type rmcpConfig struct {
-	host string
-	user string
-	pass string
+type ipmiTarget struct {
+	host   string
+	config RMCPConfig
 }
 
 var (
@@ -173,17 +172,17 @@ func pipeName() string {
 	return filepath.Join(os.TempDir(), "ipmi_exporter-"+hex.EncodeToString(randBytes))
 }
 
-func freeipmiConfig(driver, user, password string) string {
+func freeipmiConfig(config RMCPConfig) string {
 	return fmt.Sprintf(`
 driver-type %s
-privilege-level admin
+privilege-level %s
 username %s
 password %s
-	`, driver, user, password)
+	`, config.Driver, config.Privilege, config.User, config.Password)
 }
 
-func freeipmiConfigPipe(driver, user, password string) (string, error) {
-	content := []byte(freeipmiConfig(driver, user, password))
+func freeipmiConfigPipe(config RMCPConfig) (string, error) {
+	content := []byte(freeipmiConfig(config))
 	pipe := pipeName()
 	err := syscall.Mkfifo(pipe, 0600)
 	if err != nil {
@@ -203,11 +202,11 @@ func freeipmiConfigPipe(driver, user, password string) (string, error) {
 	return pipe, nil
 }
 
-func freeipmiOutput(cmd string, rmcp *rmcpConfig, arg ...string) ([]byte, error) {
+func freeipmiOutput(cmd string, target *ipmiTarget, arg ...string) ([]byte, error) {
 	args := []string{}
 
-	if rmcp != nil {
-		pipe, err := freeipmiConfigPipe("LAN_2_0", rmcp.user, rmcp.pass)
+	if target != nil {
+		pipe, err := freeipmiConfigPipe(target.config)
 		if err != nil {
 			return nil, err
 		}
@@ -215,7 +214,7 @@ func freeipmiOutput(cmd string, rmcp *rmcpConfig, arg ...string) ([]byte, error)
 
 		rmcpArgs := []string{
 			"--config-file", pipe,
-			"-h", rmcp.host,
+			"-h", target.host,
 		}
 		args = append(args, rmcpArgs...)
 	}
@@ -229,16 +228,16 @@ func freeipmiOutput(cmd string, rmcp *rmcpConfig, arg ...string) ([]byte, error)
 	return out, err
 }
 
-func ipmiMonitoringOutput(rmcp *rmcpConfig) ([]byte, error) {
-	return freeipmiOutput("ipmimonitoring", rmcp, "-Q", "--comma-separated-output", "--no-header-output", "--sdr-cache-recreate")
+func ipmiMonitoringOutput(target *ipmiTarget) ([]byte, error) {
+	return freeipmiOutput("ipmimonitoring", target, "-Q", "--comma-separated-output", "--no-header-output", "--sdr-cache-recreate")
 }
 
-func ipmiDCMIOutput(rmcp *rmcpConfig) ([]byte, error) {
-	return freeipmiOutput("ipmi-dcmi", rmcp, "--get-system-power-statistics")
+func ipmiDCMIOutput(target *ipmiTarget) ([]byte, error) {
+	return freeipmiOutput("ipmi-dcmi", target, "--get-system-power-statistics")
 }
 
-func bmcInfoOutput(rmcp *rmcpConfig) ([]byte, error) {
-	return freeipmiOutput("bmc-info", rmcp, "--get-device-id")
+func bmcInfoOutput(target *ipmiTarget) ([]byte, error) {
+	return freeipmiOutput("bmc-info", target, "--get-device-id")
 }
 
 func splitMonitoringOutput(impiOutput []byte, excludeSensorIds []int64) ([]sensorData, error) {
@@ -363,8 +362,8 @@ func collectGenericSensor(ch chan<- prometheus.Metric, state float64, data senso
 	)
 }
 
-func (c collector) collectMonitoring(ch chan<- prometheus.Metric, rmcp *rmcpConfig) (int, error) {
-	output, err := ipmiMonitoringOutput(rmcp)
+func (c collector) collectMonitoring(ch chan<- prometheus.Metric, target *ipmiTarget) (int, error) {
+	output, err := ipmiMonitoringOutput(target)
 	if err != nil {
 		log.Errorf("Failed to collect ipmimonitoring data: %s", err)
 		return 0, err
@@ -412,8 +411,8 @@ func (c collector) collectMonitoring(ch chan<- prometheus.Metric, rmcp *rmcpConf
 	return 1, nil
 }
 
-func (c collector) collectDCMI(ch chan<- prometheus.Metric, rmcp *rmcpConfig) (int, error) {
-	output, err := ipmiDCMIOutput(rmcp)
+func (c collector) collectDCMI(ch chan<- prometheus.Metric, target *ipmiTarget) (int, error) {
+	output, err := ipmiDCMIOutput(target)
 	if err != nil {
 		log.Debugf("Failed to collect ipmi-dcmi data: %s", err)
 		return 0, err
@@ -431,8 +430,8 @@ func (c collector) collectDCMI(ch chan<- prometheus.Metric, rmcp *rmcpConfig) (i
 	return 1, nil
 }
 
-func (c collector) collectBmcInfo(ch chan<- prometheus.Metric, rmcp *rmcpConfig) (int, error) {
-	output, err := bmcInfoOutput(rmcp)
+func (c collector) collectBmcInfo(ch chan<- prometheus.Metric, target *ipmiTarget) (int, error) {
+	output, err := bmcInfoOutput(target)
 	if err != nil {
 		log.Debugf("Failed to collect bmc-info data: %s", err)
 		return 0, err
@@ -490,25 +489,24 @@ func (c collector) Collect(ch chan<- prometheus.Metric) {
 		)
 	}()
 
-	rmcp := (*rmcpConfig)(nil)
+	target := (*ipmiTarget)(nil)
 
 	if !targetIsLocal(c.target) {
-		creds, err := c.config.CredentialsForTarget(c.target)
+		config, err := c.config.ConfigForTarget(c.target)
 		if err != nil {
-			log.Errorf("No credentials available for target %s.", c.target)
+			log.Errorf("Invalid config for target %s: %s", c.target, err.Error())
 			c.markCollectorsUp(ch, 0, 0, 0)
 			return
 		}
-		rmcp = &rmcpConfig{
-			host: c.target,
-			user: creds.User,
-			pass: creds.Password,
+		target = &ipmiTarget{
+			host:   c.target,
+			config: config,
 		}
 	}
 
-	ipmiUp, _ := c.collectMonitoring(ch, rmcp)
-	dcmiUp, _ := c.collectDCMI(ch, rmcp)
-	bmcUp, _ := c.collectBmcInfo(ch, rmcp)
+	ipmiUp, _ := c.collectMonitoring(ch, target)
+	dcmiUp, _ := c.collectDCMI(ch, target)
+	bmcUp, _ := c.collectBmcInfo(ch, target)
 
 	c.markCollectorsUp(ch, bmcUp, dcmiUp, ipmiUp)
 }

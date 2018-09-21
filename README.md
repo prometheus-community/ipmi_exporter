@@ -58,15 +58,19 @@ rather than one exporter per IPMI device.
 
 The exporter requires a configuration file called `ipmi.yml` (can be
 overridden, see above). To collect local metrics, an empty file is technically
-sufficient.  For remote metrics, it must contain user names and passwords for
-IPMI access to all targets. It supports a “default” target, which is used as
-fallback if the target is not explicitly listed in the file.
+sufficient.  For remote metrics, it must contain at least user names and
+passwords for IPMI access to all targets to be scraped. You can additionally
+specify the IPMI driver type and privilege level to use (see `man 5
+freeipmi.conf` for more details and possible values).
+
+The config file supports a “default” target, settings for which are used as a
+fallback for anything not explicitly set for a given target.
 
 The configuration file also supports a blacklist of sensors, useful in case of
 OEM-specific sensors that FreeIPMI cannot deal with properly or otherwise
 misbehaving sensors. This applies to both local and remote metrics.
 
-See the included `ipmi.yml` file for an example.
+See the included `ipmi.yml` file for a commented example.
 
 ### Prometheus
 

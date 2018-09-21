@@ -1,11 +1,27 @@
-credentials:
+# Configuration file for ipmi_exporter
+
+# Information required to access remote IPMI interfaces can be supplied in the
+# 'targets' section.  Settings from the special target 'default' are used for
+# anything not specified for a target.
+targets:
         default:
+                # These settings would be used for any target other then those
+                # listed below, driver and privilege reflect the built-in
+                # defaults if not specified at all.
                 user: "default_user"
                 pass: "example_pw"
+                driver: "LAN_2_0"
+                privilege: "admin"
         10.8.0.2:
+                # Override settings for a specific target. Uses default driver.
                 user: "host_specific_user"
                 pass: "another_pw"
+                privilege: "user"
+        10.8.0.2:
+                # Uses everything from the default section, but LAN driver.
+                driver: "LAN"
 
+# List of sensor IDs to be excluded
 exclude_sensor_ids:
   - 2
   - 29
@@ -21,4 +37,4 @@ exclude_sensor_ids:
   - 85
   - 86
   - 87
-  
+
