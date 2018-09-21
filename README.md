@@ -1,12 +1,17 @@
 Prometheus IPMI Exporter
 ========================
 
-This is an IPMI over LAN exporter for [Prometheus](https://prometheus.io). 
+This is an IPMI exporter for [Prometheus](https://prometheus.io).
 
-An instance running on one host can be used to monitor a large number of IPMI
-interfaces by passing the `target` parameter to a scrape. It uses tools from
-the [FreeIPMI](https://www.gnu.org/software/freeipmi/) suite for the actual
-IPMI communication.
+It supports both the regular `/metrics` endpoint, exposing metrics from the
+host that the exporter is running on, as well as an `/ipmi` endpoint that
+supports IPMI over RMCP - one exporter running on one host can be used to
+monitor a large number of IPMI interfaces by passing the `target` parameter to
+a scrape.
+
+The exporter relies on tools from the
+[FreeIPMI](https://www.gnu.org/software/freeipmi/) suite for the actual IPMI
+implementation.
 
 ## Installation
 
@@ -36,30 +41,55 @@ Make sure you have the following tools from the
 
 ## Configuration
 
-The general configuration pattern is similar to that of the [blackbox
-exporter](https://github.com/prometheus/blackbox_exporter), i.e. Prometheus
-scrapes a small number (possibly one) of IPMI exporters with a `target` URL
-parameter to tell the exporter which IPMI device it should use to retrieve the
-IPMI metrics. We have taken this approach as IPMI devices often provide useful
-information even while the supervised host is turned off.  If you are running
-the exporter on a separate host anyway, it makes more sense to have only a few
-of them, each probing many (possibly thousands of) IPMI devices, rather than
-one exporter per IPMI device.
+Simply scraping the standard `/metrics` endpoint will make the exporter emit
+local IPMI metrics. No special configuration is required.
+
+For remote metrics, the general configuration pattern is similar to that of the
+[blackbox exporter](https://github.com/prometheus/blackbox_exporter), i.e.
+Prometheus scrapes a small number (possibly one) of IPMI exporters with a
+`target` URL parameter to tell the exporter which IPMI device it should use to
+retrieve the IPMI metrics. We offer this approach as IPMI devices often provide
+useful information even while the supervised host is turned off.  If you are
+running the exporter on a separate host anyway, it makes more sense to have
+only a few of them, each probing many (possibly thousands of) IPMI devices,
+rather than one exporter per IPMI device.
 
 ### IPMI exporter
 
 The exporter requires a configuration file called `ipmi.yml` (can be
-overridden, see above).  It must contain user names and passwords for IPMI
-access to all targets. It supports a “default” target, which is used as
+overridden, see above). To collect local metrics, an empty file is technically
+sufficient.  For remote metrics, it must contain user names and passwords for
+IPMI access to all targets. It supports a “default” target, which is used as
 fallback if the target is not explicitly listed in the file.
 
 The configuration file also supports a blacklist of sensors, useful in case of
 OEM-specific sensors that FreeIPMI cannot deal with properly or otherwise
-misbehaving sensors.
+misbehaving sensors. This applies to both local and remote metrics.
 
 See the included `ipmi.yml` file for an example.
 
 ### Prometheus
+
+#### Local metrics
+
+Collecting local IPMI metrics is fairly straightforward. Simply configure your
+server to scrape the default metrics endpoint on the hosts running the
+exporter.
+
+```
+- job_name: ipmi
+  scrape_interval: 1m
+  scrape_timeout: 30s
+  metrics_path: /metrics
+  scheme: http
+  static_configs:
+  - targets:
+    - 10.1.2.23:9290
+    - 10.1.2.24:9290
+    - 10.1.2.25:9290
+```
+
+#### Remote metrics
 
 To add your IPMI targets to Prometheus, you can use any of the supported
 service discovery mechanism of your choice. The following example uses the
@@ -113,7 +143,7 @@ add the following to your Prometheus config:
   - separator: ;
     regex: .*
     target_label: __address__
-    replacement: ipmi-exporter.internal.example.com:9198
+    replacement: ipmi-exporter.internal.example.com:9290
     action: replace
 ```
 
