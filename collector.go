@@ -216,6 +216,8 @@ func freeipmiOutput(cmd string, rmcp *rmcpConfig, arg ...string) ([]byte, error)
 		rmcpArgs := []string{
 			"--config-file", pipe,
 			"-h", rmcp.host,
+			"-u", rmcp.user,
+			"-p", rmcp.pass,
 		}
 		args = append(args, rmcpArgs...)
 	}
