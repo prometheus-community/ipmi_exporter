@@ -14,8 +14,7 @@ import (
 )
 
 var (
-	showVersion = flag.Bool("version", false, "Print version information.")
-	configFile  = flag.String(
+	configFile = flag.String(
 		"config.file", "ipmi.yml",
 		"Path to configuration file.",
 	)
