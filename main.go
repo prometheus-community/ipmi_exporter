@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"net/http"
 	"os"
@@ -11,21 +10,22 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/log"
+	kingpin "gopkg.in/alecthomas/kingpin.v2"
 )
 
 var (
-	configFile = flag.String(
-		"config.file", "ipmi.yml",
+	configFile = kingpin.Flag(
+		"config.file",
 		"Path to configuration file.",
-	)
-	executablesPath = flag.String(
-		"path", "",
+	).Default("ipmi.yml").String()
+	executablesPath = kingpin.Flag(
+		"freeipmi.path",
 		"Path to FreeIPMI executables (default: rely on $PATH).",
-	)
-	listenAddress = flag.String(
-		"web.listen-address", ":9290",
+	).String()
+	listenAddress = kingpin.Flag(
+		"web.listen-address",
 		"Address to listen on for web interface and telemetry.",
-	)
+	).Default(":9290").String()
 
 	sc = &SafeConfig{
 		C: &Config{},
@@ -64,7 +64,9 @@ func updateConfiguration(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	flag.Parse()
+	log.AddFlags(kingpin.CommandLine)
+	kingpin.HelpFlag.Short('h')
+	kingpin.Parse()
 	log.Infoln("Starting ipmi_exporter")
 
 	// Bail early if the config is bad.

@@ -30,7 +30,11 @@ Supported parameters include:
 
  - `web.listen-address`: the address/port to listen on (default: `":9290"`)
  - `config.file`: path to the configuration file (default: `ipmi.yml`)
- - `path`: path to the FreeIPMI executables (default: rely on `$PATH`)
+ - `freeipmi.path`: path to the FreeIPMI executables (default: rely on `$PATH`)
+
+For a complete list of available parameters, run:
+
+    ./ipmi_exporter -h
 
 Make sure you have the following tools from the
 [FreeIPMI](https://www.gnu.org/software/freeipmi/) suite installed:
