@@ -370,13 +370,13 @@ func collectGenericSensor(ch chan<- prometheus.Metric, state float64, data senso
 func collectMonitoring(ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	output, err := ipmiMonitoringOutput(target)
 	if err != nil {
-		log.Errorf("Failed to collect ipmimonitoring data from %s: %s", rcmp.host, err)
+		log.Errorf("Failed to collect ipmimonitoring data from %s: %s", rmcp.host, err)
 		return 0, err
 	}
 	excludeIds := target.config.ExcludeSensorIDs
 	results, err := splitMonitoringOutput(output, excludeIds)
 	if err != nil {
-		log.Errorf("Failed to parse ipmimonitoring data from %s: %s", rcmp.host, err)
+		log.Errorf("Failed to parse ipmimonitoring data from %s: %s", rmcp.host, err)
 		return 0, err
 	}
 	for _, data := range results {
@@ -419,12 +419,12 @@ func collectMonitoring(ch chan<- prometheus.Metric, target ipmiTarget) (int, err
 func collectDCMI(ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	output, err := ipmiDCMIOutput(target)
 	if err != nil {
-		log.Debugf("Failed to collect ipmi-dcmi data from %s: %s", rcmp.host, err)
+		log.Debugf("Failed to collect ipmi-dcmi data from %s: %s", rmcp.host, err)
 		return 0, err
 	}
 	currentPowerConsumption, err := getCurrentPowerConsumption(output)
 	if err != nil {
-		log.Errorf("Failed to parse ipmi-dcmi data from %s: %s", rcmp.host, err)
+		log.Errorf("Failed to parse ipmi-dcmi data from %s: %s", rmcp.host, err)
 		return 0, err
 	}
 	ch <- prometheus.MustNewConstMetric(
@@ -438,17 +438,17 @@ func collectDCMI(ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 func collectBmcInfo(ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	output, err := bmcInfoOutput(target)
 	if err != nil {
-		log.Debugf("Failed to collect bmc-info data from %s: %s", rcmp.host, err)
+		log.Debugf("Failed to collect bmc-info data from %s: %s", rmcp.host, err)
 		return 0, err
 	}
 	firmwareRevision, err := getBMCInfoFirmwareRevision(output)
 	if err != nil {
-		log.Errorf("Failed to parse bmc-info data from %s: %s", rcmp.host, err)
+		log.Errorf("Failed to parse bmc-info data from %s: %s", rmcp.host, err)
 		return 0, err
 	}
 	manufacturerID, err := getBMCInfoManufacturerID(output)
 	if err != nil {
-		log.Errorf("Failed to parse bmc-info data from %s: %s", rcmp.host, err)
+		log.Errorf("Failed to parse bmc-info data from %s: %s", rmcp.host, err)
 		return 0, err
 	}
 	ch <- prometheus.MustNewConstMetric(
