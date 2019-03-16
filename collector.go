@@ -228,7 +228,7 @@ func freeipmiOutput(cmd string, target ipmiTarget, arg ...string) ([]byte, error
 	log.Debugf("Executing %s %v", fqcmd, args)
 	out, err := exec.Command(fqcmd, args...).CombinedOutput()
 	if err != nil {
-		log.Errorf("Error while calling %s: %s", cmd, out)
+		log.Errorf("Error while calling %s for %s: %s", cmd, rmcp.host, out)
 	}
 	return out, err
 }
