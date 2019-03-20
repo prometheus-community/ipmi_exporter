@@ -1,0 +1,45 @@
+# Configuration file for ipmi_exporter
+
+# This is an example config for scraping remote hosts via IPMI.
+# Information required to access remote IPMI interfaces can be supplied in the
+# 'modules' section. A scrape can request the usage of a given config by
+# setting the `module` URL parameter.
+
+modules:
+        default:
+                # These settings are used if no module is specified, the
+                # specified module doesn't exist, or of course if
+                # module=default is specified.
+                user: "default_user"
+                pass: "example_pw"
+                driver: "LAN_2_0"
+                privilege: "user"
+                # Available collectors are bmc, ipmi, and dcmi
+                # If not specified, all three are used
+                collectors:
+                - bmc
+                - ipmi
+                # Got any sensors you don't care about? Add them here.
+                exclude_sensor_ids:
+                - 2
+                - 29
+                - 32
+                - 50
+                - 52
+                - 55
+        dcmi:
+                # Use these settings when scraped with module=dcmi.
+                user: "admin_user"
+                pass: "another_pw"
+                privilege: "admin"
+                driver: "LAN_2_0"
+                collectors:
+                - dcmi
+        thatspecialhost:
+                #  Use these settings when scraped with module=thatspecialhost.
+                user: "some_user"
+                pass: "secret_pw"
+                privilege: "admin"
+                driver: "LAN"
+                collectors:
+                - ipmi

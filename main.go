@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"net/http"
 	"os"
@@ -11,21 +10,22 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/log"
+	kingpin "gopkg.in/alecthomas/kingpin.v2"
 )
 
 var (
-	configFile = flag.String(
-		"config.file", "ipmi.yml",
+	configFile = kingpin.Flag(
+		"config.file",
 		"Path to configuration file.",
-	)
-	executablesPath = flag.String(
-		"path", "",
+	).String()
+	executablesPath = kingpin.Flag(
+		"freeipmi.path",
 		"Path to FreeIPMI executables (default: rely on $PATH).",
-	)
-	listenAddress = flag.String(
-		"web.listen-address", ":9290",
+	).String()
+	listenAddress = kingpin.Flag(
+		"web.listen-address",
 		"Address to listen on for web interface and telemetry.",
-	)
+	).Default(":9290").String()
 
 	sc = &SafeConfig{
 		C: &Config{},
@@ -39,10 +39,21 @@ func remoteIPMIHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "'target' parameter must be specified", 400)
 		return
 	}
-	log.Debugf("Scraping target '%s'", target)
+
+	// Remote scrape will not work without some kind of config, so be pedantic about it
+	module := r.URL.Query().Get("module")
+	if module == "" {
+		module = "default"
+	}
+	if !sc.HasModule(module) {
+		http.Error(w, fmt.Sprintf("Unknown module %q", module), http.StatusBadRequest)
+		return
+	}
+
+	log.Debugf("Scraping target '%s' with module '%s'", target, module)
 
 	registry := prometheus.NewRegistry()
-	remoteCollector := collector{target: target, config: sc}
+	remoteCollector := collector{target: target, module: module, config: sc}
 	registry.MustRegister(remoteCollector)
 	h := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
 	h.ServeHTTP(w, r)
@@ -64,7 +75,9 @@ func updateConfiguration(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	flag.Parse()
+	log.AddFlags(kingpin.CommandLine)
+	kingpin.HelpFlag.Short('h')
+	kingpin.Parse()
 	log.Infoln("Starting ipmi_exporter")
 
 	// Bail early if the config is bad.
@@ -93,7 +106,7 @@ func main() {
 		}
 	}()
 
-	localCollector := collector{target: targetLocal, config: sc}
+	localCollector := collector{target: targetLocal, module: "default", config: sc}
 	prometheus.MustRegister(&localCollector)
 
 	http.Handle("/metrics", promhttp.Handler())       // Regular metrics endpoint for local IPMI metrics.
