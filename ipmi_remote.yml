@@ -12,8 +12,14 @@ modules:
                 # module=default is specified.
                 user: "default_user"
                 pass: "example_pw"
+                # The below settings correspond to driver-type, privilege-level, and
+                # session-timeout respectively, see `man 5 freeipmi.conf`.
                 driver: "LAN_2_0"
                 privilege: "user"
+                # The session timeout is in milliseconds. Note that a scrape can take up
+                # to (session-timeout * #-of-collectors) milliseconds, so set the scrape
+                # timeout in Prometheus accordingly.
+                timeout: 10000
                 # Available collectors are bmc, ipmi, and dcmi
                 # If not specified, all three are used
                 collectors:

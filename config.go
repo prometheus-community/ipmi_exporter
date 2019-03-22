@@ -31,6 +31,7 @@ type IPMIConfig struct {
 	Password         string   `yaml:"pass"`
 	Privilege        string   `yaml:"privilege"`
 	Driver           string   `yaml:"driver"`
+	Timeout          uint32   `yaml:"timeout"`
 	Collectors       []string `yaml:"collectors"`
 	ExcludeSensorIDs []int64  `yaml:"exclude_sensor_ids"`
 
