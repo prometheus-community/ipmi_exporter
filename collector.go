@@ -190,7 +190,6 @@ func freeipmiConfig(config IPMIConfig) string {
 	if config.Timeout != 0 {
 		fmt.Fprintf(&b, "session-timeout %d\n", config.Timeout)
 	}
-	fmt.Println(b.String())
 	return b.String()
 }
 
