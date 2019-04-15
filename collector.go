@@ -185,7 +185,7 @@ func freeipmiConfig(config IPMIConfig) string {
 		fmt.Fprintf(&b, "username %s\n", config.User)
 	}
 	if config.Password != "" {
-		fmt.Fprintf(&b, "password %s\n", config.Password)
+		fmt.Fprintf(&b, "password %s\n", escapePassword(config.Password))
 	}
 	if config.Timeout != 0 {
 		fmt.Fprintf(&b, "session-timeout %d\n", config.Timeout)
@@ -513,6 +513,10 @@ func contains(s []int64, elm int64) bool {
 		}
 	}
 	return false
+}
+
+func escapePassword(password string) string {
+	return strings.Replace(password, "#", "\\#", -1)
 }
 
 func targetName(target string) string {
