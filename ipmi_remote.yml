@@ -13,7 +13,8 @@ modules:
                 user: "default_user"
                 pass: "example_pw"
                 # The below settings correspond to driver-type, privilege-level, and
-                # session-timeout respectively, see `man 5 freeipmi.conf`.
+                # session-timeout respectively, see `man 5 freeipmi.conf` (and e.g.
+                # `man 8 ipmi-sensors` for a list of driver types).
                 driver: "LAN_2_0"
                 privilege: "user"
                 # The session timeout is in milliseconds. Note that a scrape can take up
