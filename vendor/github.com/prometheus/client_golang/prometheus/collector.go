@@ -40,7 +40,8 @@ type Collector interface {
 	// Collector may yield any Metric it sees fit in its Collect method.
 	//
 	// This method idempotently sends the same descriptors throughout the
-	// lifetime of the Collector.
+	// lifetime of the Collector. It may be called concurrently and
+	// therefore must be implemented in a concurrency safe way.
 	//
 	// If a Collector encounters an error while executing this method, it
 	// must send an invalid descriptor (created with NewInvalidDesc) to
@@ -78,7 +79,7 @@ type Collector interface {
 // of the Describe method. If a Collector sometimes collects no metrics at all
 // (for example vectors like CounterVec, GaugeVec, etc., which only collect
 // metrics after a metric with a fully specified label set has been accessed),
-// it might even get registered as an unchecked Collecter (cf. the Register
+// it might even get registered as an unchecked Collector (cf. the Register
 // method of the Registerer interface). Hence, only use this shortcut
 // implementation of Describe if you are certain to fulfill the contract.
 //
