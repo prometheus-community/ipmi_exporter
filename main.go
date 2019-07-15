@@ -10,6 +10,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/log"
+	"github.com/prometheus/common/version"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -77,6 +78,7 @@ func updateConfiguration(w http.ResponseWriter, r *http.Request) {
 func main() {
 	log.AddFlags(kingpin.CommandLine)
 	kingpin.HelpFlag.Short('h')
+	kingpin.Version(version.Print("ipmi_exporter"))
 	kingpin.Parse()
 	log.Infoln("Starting ipmi_exporter")
 
