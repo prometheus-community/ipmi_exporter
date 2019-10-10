@@ -46,9 +46,9 @@ Make sure you have the following tools from the
 
 ### How to run as non root
 
-When running this exporter as non root, you should the followings.
+When running this exporter as non root, you should do the followings.
 
-   1. add sudoers files to permit the above commands
+   1. add sudoers files to permit the following commands
       ```bash
       ipmi-exporter ALL = NOPASSWD:/usr/sbin/ipmimonitoring, /usr/sbin/ipmi-sensors, /usr/sbin/ipmi-dcmi, /usr/sbin/bmc-info
       ```
@@ -65,9 +65,7 @@ When running this exporter as non root, you should the followings.
       ln -s /home/ipmi-exporter/[script name] /home/ipmi-exporter/bmc-info
       ````
   4. execute ipmi-exporter with the option
-      ```
-      --freeipmi.path=/home/ipmi-exporter
-      ```
+      `--freeipmi.path=/home/ipmi-exporter`
 
 ## Configuration
 
