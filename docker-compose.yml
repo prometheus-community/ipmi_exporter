@@ -1,0 +1,11 @@
+version: '3.7'
+services:
+  ipmi_exporter:
+    build:
+      context: .
+    volumes:
+      - ./ipmi_remote.yml:/config.yml:ro    # replace with your own config
+    ports:
+      - 9290:9290                           # bind on 0.0.0.0
+      # - 127.0.0.1:9290:9290               # or bind to specific interface
+    hostname: ipmi_exporter_docker
