@@ -43,6 +43,30 @@ Make sure you have the following tools from the
  - `ipmi-dcmi`
  - `bmc-info`
 
+
+### How to run as non root
+
+When running this exporter as non root, you should do the followings.
+
+   1. add sudoers files to permit the following commands
+      ```bash
+      ipmi-exporter ALL = NOPASSWD:/usr/sbin/ipmimonitoring, /usr/sbin/ipmi-sensors, /usr/sbin/ipmi-dcmi, /usr/sbin/bmc-info
+      ```
+  2. create the script under user dir with execute permission
+      ```bash
+      #!/bin/sh
+      sudo /usr/sbin/$(basename $0) "$@"
+      ```
+  3. create symlinks under user dir
+      ```bash
+      ln -s /home/ipmi-exporter/[script name] /home/ipmi-exporter/ipmimonitoring
+      ln -s /home/ipmi-exporter/[script name] /home/ipmi-exporter/ipmi-sensors
+      ln -s /home/ipmi-exporter/[script name] /home/ipmi-exporter/ipmi-dcmi
+      ln -s /home/ipmi-exporter/[script name] /home/ipmi-exporter/bmc-info
+      ````
+  4. execute ipmi-exporter with the option
+      `--freeipmi.path=/home/ipmi-exporter`
+
 ## Configuration
 
 Simply scraping the standard `/metrics` endpoint will make the exporter emit
