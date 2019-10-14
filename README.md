@@ -15,7 +15,7 @@ implementation.
 
 ## Installation
 
-You need a Go development environment. Then, run the following to get the 
+You need a Go development environment. Then, run the following to get the
 source code and build and install the binary:
 
     go get github.com/soundcloud/ipmi_exporter
@@ -66,6 +66,18 @@ When running this exporter as non root, you should do the followings.
       ````
   4. execute ipmi-exporter with the option
       `--freeipmi.path=/home/ipmi-exporter`
+
+### Running with docker (NOTE: remote metrics only)
+
+The root folder contains a `Dockerfile` and an example `docker-compose.yml`.
+Edit the `ipmi_remote.yml` file to configure IPMI credentials, then run with:
+
+```
+$ sudo docker-compose up -d
+```
+
+By default, the server will bind on `0.0.0.0:9290`.
+
 
 ## Configuration
 
@@ -323,4 +335,3 @@ type is added as label (in addition to name and ID). Example:
 
     ipmi_sensor_state{id="139",name="Power Cable",type="Cable/Interconnect"} 0
     ipmi_sensor_value{id="139",name="Power Cable",type="Cable/Interconnect"} NaN
-
