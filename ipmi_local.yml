@@ -4,11 +4,12 @@
 # In most cases, this should work without using a config file at all.
 modules:
         default:
-                # Available collectors are bmc, ipmi, and dcmi
+                # Available collectors are bmc, ipmi, chassis, and dcmi
                 collectors:
                 - bmc
                 - ipmi
                 - dcmi
+                - chassis
                 # Got any sensors you don't care about? Add them here.
                 exclude_sensor_ids:
                 - 2

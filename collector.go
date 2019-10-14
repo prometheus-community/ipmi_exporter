@@ -28,6 +28,7 @@ const (
 
 var (
 	ipmiDCMICurrentPowerRegex    = regexp.MustCompile(`^Current Power\s*:\s*(?P<value>[0-9.]*)\s*Watts.*`)
+	ipmiChassisPowerRegex        = regexp.MustCompile(`^System Power\s*:\s(?P<value>.*)`)
 	bmcInfoFirmwareRevisionRegex = regexp.MustCompile(`^Firmware Revision\s*:\s*(?P<value>[0-9.]*).*`)
 	bmcInfoManufacturerIDRegex   = regexp.MustCompile(`^Manufacturer ID\s*:\s*(?P<value>.*)`)
 )
@@ -145,6 +146,13 @@ var (
 		nil,
 	)
 
+	chassisPowerState = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "chassis", "power_state"),
+		"Current power state (1=on, 0=off).",
+		[]string{},
+		nil,
+	)
+
 	bmcInfo = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "bmc", "info"),
 		"Constant metric with value '1' providing details about the BMC.",
@@ -248,6 +256,10 @@ func bmcInfoOutput(target ipmiTarget) ([]byte, error) {
 	return freeipmiOutput("bmc-info", target, "--get-device-id")
 }
 
+func ipmiChassisOutput(target ipmiTarget) ([]byte, error) {
+	return freeipmiOutput("ipmi-chassis", target, "--get-chassis-status")
+}
+
 func splitMonitoringOutput(impiOutput []byte, excludeSensorIds []int64) ([]sensorData, error) {
 	var result []sensorData
 
@@ -312,6 +324,17 @@ func getCurrentPowerConsumption(ipmiOutput []byte) (float64, error) {
 		return -1, err
 	}
 	return strconv.ParseFloat(value, 64)
+}
+
+func getChassisPowerState(ipmiOutput []byte) (float64, error) {
+	value, err := getValue(ipmiOutput, ipmiChassisPowerRegex)
+	if err != nil {
+		return -1, err
+	}
+	if value == "on" {
+		return 1, err
+	}
+	return 0, err
 }
 
 func getBMCInfoFirmwareRevision(ipmiOutput []byte) (string, error) {
@@ -438,6 +461,25 @@ func collectDCMI(ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	return 1, nil
 }
 
+func collectChassisState(ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
+	output, err := ipmiChassisOutput(target)
+	if err != nil {
+		log.Debugf("Failed to collect ipmi-chassis data from %s: %s", targetName(target.host), err)
+		return 0, err
+	}
+	currentChassisPowerState, err := getChassisPowerState(output)
+	if err != nil {
+		log.Errorf("Failed to parse ipmi-chassis data from %s: %s", targetName(target.host), err)
+		return 0, err
+	}
+	ch <- prometheus.MustNewConstMetric(
+		chassisPowerState,
+		prometheus.GaugeValue,
+		currentChassisPowerState,
+	)
+	return 1, nil
+}
+
 func collectBmcInfo(ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	output, err := bmcInfoOutput(target)
 	if err != nil {
@@ -501,6 +543,8 @@ func (c collector) Collect(ch chan<- prometheus.Metric) {
 			up, _ = collectDCMI(ch, target)
 		case "bmc":
 			up, _ = collectBmcInfo(ch, target)
+		case "chassis":
+			up, _ = collectChassisState(ch, target)
 		}
 		markCollectorUp(ch, collector, up)
 	}

@@ -249,6 +249,13 @@ returned from the BMC. Example:
 
     ipmi_bmc_info{firmware_revision="2.52",manufacturer_id="Dell Inc. (674)"} 1
 
+### Chassis Power State
+This metric is only provided if the `chassis` collector is enabled.
+
+The metric `ipmi_chassis_power_state` shows the current chassis power state of the machine.
+The value is 1 for poweron, and 0 otherwise.
+
+
 ### Power consumption
 
 This metric is only provided if the `dcmi` collector is enabled.
