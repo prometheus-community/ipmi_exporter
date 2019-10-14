@@ -1,7 +1,7 @@
 go:
     # Whenever the Go version is updated here,
-    # .circle/config.yml should also be updated.
-    version: 1.12
+    # .cirrus.yml should also be updated.
+    version: 1.13
 
 repository:
     path: github.com/soundcloud/ipmi_exporter

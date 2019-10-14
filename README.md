@@ -1,6 +1,8 @@
 Prometheus IPMI Exporter
 ========================
 
+[![Build Status](https://api.cirrus-ci.com/github/soundcloud/ipmi_exporter.svg?branch=master)](https://cirrus-ci.com/github/soundcloud/ipmi_exporter)
+
 This is an IPMI exporter for [Prometheus](https://prometheus.io).
 
 It supports both the regular `/metrics` endpoint, exposing metrics from the
