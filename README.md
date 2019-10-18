@@ -17,10 +17,31 @@ implementation.
 
 ## Installation
 
-You need a Go development environment. Then, run the following to get the
-source code and build and install the binary:
+For most use-cases, simply download the [the latest
+release](https://github.com/soundcloud/ipmi_exporter/releases).
+
+### Building from source
+
+You need a Go development environment. Then, simply run `make` to build the
+executable:
+
+    make
+
+This uses the common prometheus tooling to build and run some tests.
+
+Alternatively, you can use the standard Go tooling, which will install the
+executable in `$GOPATH/bin`:
 
     go get github.com/soundcloud/ipmi_exporter
+
+### Building a Docker container
+
+You can build a Docker container with the included `docker` make target:
+
+    make docker
+
+This will not even require Go tooling on the host. See the included [docker
+compose example](docker-compose.yml) for how to use the resulting container.
 
 ## Running
 
@@ -45,41 +66,40 @@ Make sure you have the following tools from the
  - `ipmi-dcmi`
  - `bmc-info`
 
+### Running as unprivileged user
 
-### How to run as non root
+If you are running the exporter as unprivileged user, but need to execute the
+FreeIPMI tools as root, you can do the following:
 
-When running this exporter as non root, you should do the followings.
-
-   1. add sudoers files to permit the following commands
-      ```bash
-      ipmi-exporter ALL = NOPASSWD:/usr/sbin/ipmimonitoring, /usr/sbin/ipmi-sensors, /usr/sbin/ipmi-dcmi, /usr/sbin/bmc-info
-      ```
-  2. create the script under user dir with execute permission
-      ```bash
-      #!/bin/sh
-      sudo /usr/sbin/$(basename $0) "$@"
-      ```
-  3. create symlinks under user dir
+  1. Add sudoers files to permit the following commands
+     ```bash
+     ipmi-exporter ALL = NOPASSWD:/usr/sbin/ipmimonitoring, /usr/sbin/ipmi-sensors, /usr/sbin/ipmi-dcmi, /usr/sbin/bmc-info
+     ```
+  2. Create the script under user dir with execute permission
+     ```bash
+     #!/bin/sh
+     sudo /usr/sbin/$(basename $0) "$@"
+     ```
+  3. Create symlinks under user dir
       ```bash
       ln -s /home/ipmi-exporter/[script name] /home/ipmi-exporter/ipmimonitoring
       ln -s /home/ipmi-exporter/[script name] /home/ipmi-exporter/ipmi-sensors
       ln -s /home/ipmi-exporter/[script name] /home/ipmi-exporter/ipmi-dcmi
       ln -s /home/ipmi-exporter/[script name] /home/ipmi-exporter/bmc-info
       ````
-  4. execute ipmi-exporter with the option
-      `--freeipmi.path=/home/ipmi-exporter`
+  4. Execute ipmi-exporter with the option `--freeipmi.path=/home/ipmi-exporter`
 
-### Running with docker (NOTE: remote metrics only)
+### Running in Docker
 
-The root folder contains a `Dockerfile` and an example `docker-compose.yml`.
-Edit the `ipmi_remote.yml` file to configure IPMI credentials, then run with:
+**NOTE:** you should only use Docker for remote metrics.
 
-```
-$ sudo docker-compose up -d
-```
+See [Building a Docker container](#building-a-docker-container) and the example
+`docker-compose.yml`. Edit the `ipmi_remote.yml` file to configure IPMI
+credentials, then run with:
+
+    sudo docker-compose up -d
 
 By default, the server will bind on `0.0.0.0:9290`.
-
 
 ## Configuration
 
@@ -95,6 +115,10 @@ often provide useful information even while the supervised host is turned off.
 If you are running the exporter on a separate host anyway, it makes more sense
 to have only a few of them, each probing many (possibly thousands of) IPMI
 devices, rather than one exporter per IPMI device.
+
+**NOTE:** If you are using remote metrics, but still want to get the local
+process metrics from the instance, you must use a `default` module with an
+empty collectors list and use other modules for the remote hosts.
 
 ### IPMI exporter
 
@@ -252,11 +276,11 @@ returned from the BMC. Example:
     ipmi_bmc_info{firmware_revision="2.52",manufacturer_id="Dell Inc. (674)"} 1
 
 ### Chassis Power State
+
 This metric is only provided if the `chassis` collector is enabled.
 
-The metric `ipmi_chassis_power_state` shows the current chassis power state of the machine.
-The value is 1 for poweron, and 0 otherwise.
-
+The metric `ipmi_chassis_power_state` shows the current chassis power state of
+the machine.  The value is 1 for power on, and 0 otherwise.
 
 ### Power consumption
 
