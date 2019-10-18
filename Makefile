@@ -1,9 +1,11 @@
 # Override the default common all.
-.PHONY: all
+.PHONY: all precheck style unused build test
 all: precheck style unused build test
 
-include Makefile.common
-
+DOCKER_ARCHS      ?= amd64
 DOCKER_IMAGE_NAME ?= ipmi-exporter
 DOCKER_REPO       ?= soundcloud
 
+include Makefile.common
+
+docker: common-docker
