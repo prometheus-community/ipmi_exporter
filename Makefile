@@ -1,5 +1,5 @@
 # Override the default common all.
-.PHONY: all precheck style unused build test
+.PHONY: all
 all: precheck style unused build test
 
 DOCKER_ARCHS      ?= amd64
