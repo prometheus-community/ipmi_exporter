@@ -198,6 +198,13 @@ func freeipmiConfig(config IPMIConfig) string {
 	if config.Timeout != 0 {
 		fmt.Fprintf(&b, "session-timeout %d\n", config.Timeout)
 	}
+	if len(config.WorkaroundFlags) > 0 {
+		fmt.Fprintf(&b, "workaround-flags")
+		for _, flag := range config.WorkaroundFlags {
+			fmt.Fprintf(&b, " %s", flag)
+		}
+		fmt.Fprintln(&b)
+	}
 	return b.String()
 }
 

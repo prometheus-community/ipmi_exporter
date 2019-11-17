@@ -44,10 +44,17 @@ modules:
                 collectors:
                 - dcmi
         thatspecialhost:
-                #  Use these settings when scraped with module=thatspecialhost.
+                # Use these settings when scraped with module=thatspecialhost.
                 user: "some_user"
                 pass: "secret_pw"
                 privilege: "admin"
                 driver: "LAN"
                 collectors:
                 - ipmi
+                # Need any special workaround flags set? Add them here.
+                # Workaround flags might be needed to address issues with specific vendor implementations
+                # e.g. https://www.gnu.org/software/freeipmi/freeipmi-faq.html#Why-is-the-output-from-FreeIPMI-different-than-another-software_003f
+                # For a full list of flags, refer to:
+                # https://www.gnu.org/software/freeipmi/manpages/man8/ipmi-sensors.8.html#lbAL
+                workaround_flags:
+                - discretereading

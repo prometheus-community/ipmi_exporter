@@ -34,6 +34,7 @@ type IPMIConfig struct {
 	Timeout          uint32   `yaml:"timeout"`
 	Collectors       []string `yaml:"collectors"`
 	ExcludeSensorIDs []int64  `yaml:"exclude_sensor_ids"`
+	WorkaroundFlags  []string `yaml:"workaround_flags"`
 
 	// Catches all undefined fields and must be empty after parsing.
 	XXX map[string]interface{} `yaml:",inline"`
