@@ -73,7 +73,7 @@ FreeIPMI tools as root, you can do the following:
 
   1. Add sudoers files to permit the following commands
      ```bash
-     ipmi-exporter ALL = NOPASSWD:/usr/sbin/ipmimonitoring, /usr/sbin/ipmi-sensors, /usr/sbin/ipmi-dcmi, /usr/sbin/bmc-info
+     ipmi-exporter ALL = NOPASSWD:/usr/sbin/ipmimonitoring, /usr/sbin/ipmi-sensors, /usr/sbin/ipmi-dcmi, /usr/sbin/bmc-info, /usr/sbin/ipmi-chassis
      ```
   2. Create the script under user dir with execute permission
      ```bash
@@ -86,6 +86,7 @@ FreeIPMI tools as root, you can do the following:
       ln -s /home/ipmi-exporter/[script name] /home/ipmi-exporter/ipmi-sensors
       ln -s /home/ipmi-exporter/[script name] /home/ipmi-exporter/ipmi-dcmi
       ln -s /home/ipmi-exporter/[script name] /home/ipmi-exporter/bmc-info
+      ln -s /home/ipmi-exporter/[script name] /home/ipmi-exporter/ipmi-chassis
       ````
   4. Execute ipmi-exporter with the option `--freeipmi.path=/home/ipmi-exporter`
 
