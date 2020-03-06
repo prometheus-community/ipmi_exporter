@@ -234,7 +234,11 @@ func freeipmiOutput(cmd string, target ipmiTarget, arg ...string) ([]byte, error
 	if err != nil {
 		return nil, err
 	}
-	defer os.Remove(pipe)
+	defer func() {
+		if err := os.Remove(pipe); err != nil {
+			log.Errorf("Error deleting named pipe: %s", err)
+		}
+	}()
 
 	args := []string{"--config-file", pipe}
 	if !targetIsLocal(target.host) {
