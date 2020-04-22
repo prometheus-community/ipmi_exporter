@@ -65,6 +65,7 @@ Make sure you have the following tools from the
  - `ipmimonitoring`/`ipmi-sensors`
  - `ipmi-dcmi`
  - `bmc-info`
+ - `ipmi-sel`
 
 ### Running as unprivileged user
 
@@ -72,8 +73,13 @@ If you are running the exporter as unprivileged user, but need to execute the
 FreeIPMI tools as root, you can do the following:
 
   1. Add sudoers files to permit the following commands
-     ```bash
-     ipmi-exporter ALL = NOPASSWD:/usr/sbin/ipmimonitoring, /usr/sbin/ipmi-sensors, /usr/sbin/ipmi-dcmi, /usr/sbin/bmc-info, /usr/sbin/ipmi-chassis
+     ```
+     ipmi-exporter ALL = NOPASSWD: /usr/sbin/ipmimonitoring,\
+                                   /usr/sbin/ipmi-sensors,\
+                                   /usr/sbin/ipmi-dcmi,\
+                                   /usr/sbin/bmc-info,\
+                                   /usr/sbin/ipmi-chassis,\
+                                   /usr/sbin/ipmi-sel
      ```
   2. Create the script under user dir with execute permission
      ```bash
@@ -291,6 +297,18 @@ The metric `ipmi_dcmi_power_consumption_current_watts` can be used to monitor
 the live power consumption of the machine in Watts. If in doubt, this metric
 should be used over any of the sensor data (see below), even if their name
 might suggest that they measure the same thing. This metric has no labels.
+
+### System event log (SEL) info
+
+These metrics is only provided if the `sel` collector is enabled (it isn't by
+default).
+
+The metric `ipmi_sel_entries_count` contains the current number of entries in
+the SEL. It is a gauge, as the SEL can be cleared at any time. This metric has
+no labels.
+
+The metric `ipmi_sel_free_space_bytes` contains the current number of free
+space for new SEL entries, in bytes. This metric has no labels.
 
 ### Sensors
 

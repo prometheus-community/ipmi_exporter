@@ -21,8 +21,8 @@ modules:
                 # to (session-timeout * #-of-collectors) milliseconds, so set the scrape
                 # timeout in Prometheus accordingly.
                 timeout: 10000
-                # Available collectors are bmc, ipmi, chassis, and dcmi
-                # If not specified, all three are used
+                # Available collectors are bmc, ipmi, chassis, dcmi, and sel
+                # If _not_ specified, bmc, ipmi, chassis, and dcmi are used
                 collectors:
                 - bmc
                 - ipmi
@@ -51,6 +51,7 @@ modules:
                 driver: "LAN"
                 collectors:
                 - ipmi
+                - sel
                 # Need any special workaround flags set? Add them here.
                 # Workaround flags might be needed to address issues with specific vendor implementations
                 # e.g. https://www.gnu.org/software/freeipmi/freeipmi-faq.html#Why-is-the-output-from-FreeIPMI-different-than-another-software_003f

@@ -29,6 +29,8 @@ const (
 var (
 	ipmiDCMICurrentPowerRegex    = regexp.MustCompile(`^Current Power\s*:\s*(?P<value>[0-9.]*)\s*Watts.*`)
 	ipmiChassisPowerRegex        = regexp.MustCompile(`^System Power\s*:\s(?P<value>.*)`)
+	ipmiSELEntriesRegex          = regexp.MustCompile(`^Number of log entries\s*:\s(?P<value>[0-9.]*)`)
+	ipmiSELFreeSpaceRegex        = regexp.MustCompile(`^Free space remaining\s*:\s(?P<value>[0-9.]*)\s*bytes.*`)
 	bmcInfoFirmwareRevisionRegex = regexp.MustCompile(`^Firmware Revision\s*:\s*(?P<value>[0-9.]*).*`)
 	bmcInfoManufacturerIDRegex   = regexp.MustCompile(`^Manufacturer ID\s*:\s*(?P<value>.*)`)
 )
@@ -160,6 +162,20 @@ var (
 		nil,
 	)
 
+	selEntriesCountDesc = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "sel", "logs_count"),
+		"Current number of log entries in the SEL.",
+		[]string{},
+		nil,
+	)
+
+	selFreeSpaceDesc = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "sel", "free_space_bytes"),
+		"Current free space remaining for new SEL entries.",
+		[]string{},
+		nil,
+	)
+
 	upDesc = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "", "up"),
 		"'1' if a scrape of the IPMI device was successful, '0' otherwise.",
@@ -271,6 +287,10 @@ func ipmiChassisOutput(target ipmiTarget) ([]byte, error) {
 	return freeipmiOutput("ipmi-chassis", target, "--get-chassis-status")
 }
 
+func ipmiSELOutput(target ipmiTarget) ([]byte, error) {
+	return freeipmiOutput("ipmi-sel", target, "--info")
+}
+
 func splitMonitoringOutput(impiOutput []byte, excludeSensorIds []int64) ([]sensorData, error) {
 	var result []sensorData
 
@@ -356,6 +376,22 @@ func getBMCInfoManufacturerID(ipmiOutput []byte) (string, error) {
 	return getValue(ipmiOutput, bmcInfoManufacturerIDRegex)
 }
 
+func getSELInfoEntriesCount(ipmiOutput []byte) (float64, error) {
+	value, err := getValue(ipmiOutput, ipmiSELEntriesRegex)
+	if err != nil {
+		return -1, err
+	}
+	return strconv.ParseFloat(value, 64)
+}
+
+func getSELInfoFreeSpace(ipmiOutput []byte) (float64, error) {
+	value, err := getValue(ipmiOutput, ipmiSELFreeSpaceRegex)
+	if err != nil {
+		return -1, err
+	}
+	return strconv.ParseFloat(value, 64)
+}
+
 // Describe implements Prometheus.Collector.
 func (c collector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- sensorStateDesc
@@ -364,6 +400,8 @@ func (c collector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- temperatureDesc
 	ch <- powerConsumption
 	ch <- bmcInfo
+	ch <- selEntriesCountDesc
+	ch <- selFreeSpaceDesc
 	ch <- upDesc
 	ch <- durationDesc
 }
@@ -516,6 +554,35 @@ func collectBmcInfo(ch chan<- prometheus.Metric, target ipmiTarget) (int, error)
 	return 1, nil
 }
 
+func collectSELInfo(ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
+	output, err := ipmiSELOutput(target)
+	if err != nil {
+		log.Debugf("Failed to collect ipmi-sel data from %s: %s", targetName(target.host), err)
+		return 0, err
+	}
+	entriesCount, err := getSELInfoEntriesCount(output)
+	if err != nil {
+		log.Errorf("Failed to parse ipmi-sel data from %s: %s", targetName(target.host), err)
+		return 0, err
+	}
+	freeSpace, err := getSELInfoFreeSpace(output)
+	if err != nil {
+		log.Errorf("Failed to parse ipmi-sel data from %s: %s", targetName(target.host), err)
+		return 0, err
+	}
+	ch <- prometheus.MustNewConstMetric(
+		selEntriesCountDesc,
+		prometheus.GaugeValue,
+		entriesCount,
+	)
+	ch <- prometheus.MustNewConstMetric(
+		selFreeSpaceDesc,
+		prometheus.GaugeValue,
+		freeSpace,
+	)
+	return 1, nil
+}
+
 func markCollectorUp(ch chan<- prometheus.Metric, name string, up int) {
 	ch <- prometheus.MustNewConstMetric(
 		upDesc,
@@ -556,6 +623,8 @@ func (c collector) Collect(ch chan<- prometheus.Metric) {
 			up, _ = collectBmcInfo(ch, target)
 		case "chassis":
 			up, _ = collectChassisState(ch, target)
+		case "sel":
+			up, _ = collectSELInfo(ch, target)
 		}
 		markCollectorUp(ch, collector, up)
 	}
