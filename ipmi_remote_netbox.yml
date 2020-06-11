@@ -1,0 +1,25 @@
+---
+modules:
+  default:
+    user: fallback_username
+    pass: fallback_password
+    exclude_sensor_ids: []
+    collectors: [dcmi]
+    timeout: 10000
+    driver: LAN_2_0
+    privilege: user
+
+    # NetBox configuration
+    netbox:
+      # NetBox Root URL
+      address: https://netbox.server.url
+
+      # Use the custom field "IPMI" as IPMI address instead of target name
+      ipmi_custom_field: IPMI
+
+      # NetBox Token and Session Key (needed if retrieving credentials dynamically)
+      token: netbox_token
+      session_key: netbox_session_key
+
+      # Use the secret with role "ipmi-credentials" for username/password
+      credentials_secret: ipmi-credentials

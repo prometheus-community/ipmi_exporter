@@ -1,8 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 
@@ -24,17 +27,29 @@ type SafeConfig struct {
 	C *Config
 }
 
+// NetBoxConfig is configuration for retrieving IPMI credentials from NetBox.
+type NetBoxConfig struct {
+	Address           string            `yaml:"address"`
+	IPMICustomField   string            `yaml:"ipmi_custom_field"`
+	CredentialsSecret string            `yaml:"credentials_secret"`
+	Token             string            `yaml:"token"`
+	SessionKey        string            `yaml:"session_key"`
+	Params            map[string]string `yaml:"params"`
+}
+
 // IPMIConfig is the Go representation of a module configuration in the yaml
 // config file.
 type IPMIConfig struct {
-	User             string   `yaml:"user"`
-	Password         string   `yaml:"pass"`
-	Privilege        string   `yaml:"privilege"`
-	Driver           string   `yaml:"driver"`
-	Timeout          uint32   `yaml:"timeout"`
-	Collectors       []string `yaml:"collectors"`
-	ExcludeSensorIDs []int64  `yaml:"exclude_sensor_ids"`
-	WorkaroundFlags  []string `yaml:"workaround_flags"`
+	User             string       `yaml:"user"`
+	Password         string       `yaml:"pass"`
+	Address          string       `yaml:"address"`
+	Privilege        string       `yaml:"privilege"`
+	Driver           string       `yaml:"driver"`
+	Timeout          uint32       `yaml:"timeout"`
+	Collectors       []string     `yaml:"collectors"`
+	ExcludeSensorIDs []int64      `yaml:"exclude_sensor_ids"`
+	WorkaroundFlags  []string     `yaml:"workaround_flags"`
+	NetBox           NetBoxConfig `yaml:"netbox"`
 
 	// Catches all undefined fields and must be empty after parsing.
 	XXX map[string]interface{} `yaml:",inline"`
@@ -126,6 +141,113 @@ func (sc *SafeConfig) HasModule(module string) bool {
 	return ok
 }
 
+type netboxHost struct {
+	Name         string            `json:"name"`
+	CustomFields map[string]string `json:"custom_fields"`
+}
+
+type netboxGetHostsResult struct {
+	Results []netboxHost `json:"results"`
+}
+
+type netboxGetSecretsResult struct {
+	Results []netboxSecret `json:"results"`
+}
+
+type netboxSecret struct {
+	Name      string           `json:"name"`
+	Plaintext string           `json:"plaintext"`
+	Role      netboxSecretRole `json:"role"`
+}
+
+type netboxSecretRole struct {
+	Slug string `json:"slug"`
+}
+
+// RetrieveFromNetBox retrieves IPMI URL, username and password from NetBox.
+// Only updates fields if they are available on NetBox.
+func (s *IPMIConfig) RetrieveFromNetBox(target string) {
+	if s.NetBox.Address == "" {
+		return
+	}
+	request, err := http.NewRequest("GET", s.NetBox.Address+"/api/dcim/devices/", nil)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	request.Header.Add("authorization", fmt.Sprintf("Token %s", s.NetBox.Token))
+	request.Header.Add("x-session-key", s.NetBox.SessionKey)
+	q := request.URL.Query()
+	for key, value := range s.NetBox.Params {
+		q.Add(key, value)
+	}
+	q.Add("q", target)
+	request.URL.RawQuery = q.Encode()
+	resp, err := http.DefaultClient.Do(request)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	var hosts netboxGetHostsResult
+	if err := json.Unmarshal(body, &hosts); err != nil || len(hosts.Results) == 0 {
+		log.Error(err)
+		return
+	}
+	host := hosts.Results[0]
+	if s.NetBox.IPMICustomField != "" {
+		if fromNetbox, ok := host.CustomFields[s.NetBox.IPMICustomField]; ok {
+			ipmiURL, err := url.Parse(fromNetbox)
+			if err != nil {
+				log.Error(err)
+			} else {
+				s.Address = ipmiURL.Hostname()
+			}
+		}
+	}
+
+	if s.NetBox.CredentialsSecret == "" {
+		return
+	}
+	request, err = http.NewRequest("GET", s.NetBox.Address+"/api/secrets/secrets/", nil)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	request.Header.Add("authorization", fmt.Sprintf("Token %s", s.NetBox.Token))
+	request.Header.Add("x-session-key", s.NetBox.SessionKey)
+	q = request.URL.Query()
+	q.Add("device", host.Name)
+	request.URL.RawQuery = q.Encode()
+	resp, err = http.DefaultClient.Do(request)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	body, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	var secrets netboxGetSecretsResult
+	if err := json.Unmarshal(body, &secrets); err != nil {
+		log.Error(err)
+		return
+	}
+	for _, secret := range secrets.Results {
+		if secret.Role.Slug == s.NetBox.CredentialsSecret {
+			s.User = secret.Name
+			s.Password = secret.Plaintext
+			break
+		}
+	}
+	return
+}
+
 // ConfigForTarget returns the config for a given target/module, or the
 // default. It is concurrency-safe.
 func (sc *SafeConfig) ConfigForTarget(target, module string) IPMIConfig {
@@ -152,5 +274,6 @@ func (sc *SafeConfig) ConfigForTarget(target, module string) IPMIConfig {
 		}
 	}
 
+	(&config).RetrieveFromNetBox(target)
 	return config
 }

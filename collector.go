@@ -610,6 +610,9 @@ func (c collector) Collect(ch chan<- prometheus.Metric) {
 		host:   c.target,
 		config: config,
 	}
+	if config.Address != "" {
+		target.host = config.Address
+	}
 
 	for _, collector := range config.Collectors {
 		var up int

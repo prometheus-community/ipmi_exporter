@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"os"
@@ -27,6 +28,10 @@ var (
 		"web.listen-address",
 		"Address to listen on for web interface and telemetry.",
 	).Default(":9290").String()
+	allowInsecure = kingpin.Flag(
+		"https.allow-insecure",
+		"Address to listen on for web interface and telemetry.",
+	).Bool()
 
 	sc = &SafeConfig{
 		C: &Config{},
@@ -107,6 +112,14 @@ func main() {
 			}
 		}
 	}()
+
+	// Allow insecure HTTPS
+	if *allowInsecure {
+		log.Debug("Allow insecure HTTPS")
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{
+			InsecureSkipVerify: true,
+		}
+	}
 
 	localCollector := collector{target: targetLocal, module: "default", config: sc}
 	prometheus.MustRegister(&localCollector)
