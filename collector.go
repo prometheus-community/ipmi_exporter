@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/csv"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math"
 	"os"
@@ -186,6 +187,13 @@ var (
 	durationDesc = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "scrape_duration", "seconds"),
 		"Returns how long the scrape took to complete in seconds.",
+		nil,
+		nil,
+	)
+
+	lanModeDesc = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "config", "lan_mode"),
+		"Returns configured LAN mode.",
 		nil,
 		nil,
 	)
@@ -404,6 +412,7 @@ func (c collector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- selFreeSpaceDesc
 	ch <- upDesc
 	ch <- durationDesc
+	ch <- lanModeDesc
 }
 
 func collectTypedSensor(ch chan<- prometheus.Metric, desc, stateDesc *prometheus.Desc, state float64, data sensorData) {
@@ -488,6 +497,37 @@ func collectMonitoring(ch chan<- prometheus.Metric, target ipmiTarget) (int, err
 			collectGenericSensor(ch, state, data)
 		}
 	}
+	return 1, nil
+}
+
+func collectSmLanMode(ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
+	output, err := freeipmiOutput("ipmi-raw", target, "0x0", "0x30", "0x70", "0x0c", "0")
+	if err != nil {
+		log.Errorf("Failed to collect sm-lan-mode data from %s: %s", targetName(target.host), err)
+		return 0, err
+	}
+
+	strOutput := strings.Trim(string(output), " \r\n")
+	if !strings.HasPrefix(strOutput, "rcvd: ") {
+		log.Errorf("Unexpected output of ipmi-raw from %s: %s", targetName(target.host), strOutput)
+		return 0, errors.New("unexpected output")
+	}
+
+	octects := strings.Split(strOutput[6:], " ")
+	if len(octects) != 3 {
+		log.Errorf("Unexpected number of octects of ipmi-raw from %s: %+v", targetName(target.host), octects)
+		return 0, errors.New("unexpected number of octects")
+	}
+
+	switch octects[2] {
+	case "00", "01", "02":
+		value, _ := strconv.Atoi(octects[2])
+		ch <- prometheus.MustNewConstMetric(lanModeDesc, prometheus.GaugeValue, float64(value))
+	default:
+		log.Errorf("Unexpected lan mode status (ipmi-raw) from %s: %+v", targetName(target.host), octects[2])
+		return 0, errors.New("unexpected lan mode status")
+	}
+
 	return 1, nil
 }
 
@@ -617,6 +657,8 @@ func (c collector) Collect(ch chan<- prometheus.Metric) {
 		switch collector {
 		case "ipmi":
 			up, _ = collectMonitoring(ch, target)
+		case "sm-lan-mode":
+			up, _ = collectSmLanMode(ch, target)
 		case "dcmi":
 			up, _ = collectDCMI(ch, target)
 		case "bmc":
