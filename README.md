@@ -278,9 +278,10 @@ This metric is only provided if the `bmc` collector is enabled.
 
 For some basic information, there is a constant metric `ipmi_bmc_info` with
 value `1` and labels providing the firmware revision and manufacturer as
-returned from the BMC. Example:
+returned from the BMC, and the host system's firmware version (usually the BIOS
+version). Example:
 
-    ipmi_bmc_info{firmware_revision="2.52",manufacturer_id="Dell Inc. (674)"} 1
+    ipmi_bmc_info{firmware_revision="1.66",manufacturer_id="Dell Inc. (674)",system_firmware_version="2.6.1"} 1
 
 ### Chassis Power State
 
