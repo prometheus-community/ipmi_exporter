@@ -28,12 +28,13 @@ const (
 )
 
 var (
-	ipmiDCMICurrentPowerRegex    = regexp.MustCompile(`^Current Power\s*:\s*(?P<value>[0-9.]*)\s*Watts.*`)
-	ipmiChassisPowerRegex        = regexp.MustCompile(`^System Power\s*:\s(?P<value>.*)`)
-	ipmiSELEntriesRegex          = regexp.MustCompile(`^Number of log entries\s*:\s(?P<value>[0-9.]*)`)
-	ipmiSELFreeSpaceRegex        = regexp.MustCompile(`^Free space remaining\s*:\s(?P<value>[0-9.]*)\s*bytes.*`)
-	bmcInfoFirmwareRevisionRegex = regexp.MustCompile(`^Firmware Revision\s*:\s*(?P<value>[0-9.]*).*`)
-	bmcInfoManufacturerIDRegex   = regexp.MustCompile(`^Manufacturer ID\s*:\s*(?P<value>.*)`)
+	ipmiDCMICurrentPowerRegex         = regexp.MustCompile(`^Current Power\s*:\s*(?P<value>[0-9.]*)\s*Watts.*`)
+	ipmiChassisPowerRegex             = regexp.MustCompile(`^System Power\s*:\s(?P<value>.*)`)
+	ipmiSELEntriesRegex               = regexp.MustCompile(`^Number of log entries\s*:\s(?P<value>[0-9.]*)`)
+	ipmiSELFreeSpaceRegex             = regexp.MustCompile(`^Free space remaining\s*:\s(?P<value>[0-9.]*)\s*bytes.*`)
+	bmcInfoFirmwareRevisionRegex      = regexp.MustCompile(`^Firmware Revision\s*:\s*(?P<value>[0-9.]*).*`)
+	bmcInfoSystemFirmwareVersionRegex = regexp.MustCompile(`^System Firmware Version\s*:\s*(?P<value>[0-9.]*).*`)
+	bmcInfoManufacturerIDRegex        = regexp.MustCompile(`^Manufacturer ID\s*:\s*(?P<value>.*)`)
 )
 
 type collector struct {
@@ -159,7 +160,7 @@ var (
 	bmcInfo = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "bmc", "info"),
 		"Constant metric with value '1' providing details about the BMC.",
-		[]string{"firmware_revision", "manufacturer_id"},
+		[]string{"firmware_revision", "manufacturer_id", "system_firmware_version"},
 		nil,
 	)
 
@@ -288,7 +289,7 @@ func ipmiDCMIOutput(target ipmiTarget) ([]byte, error) {
 }
 
 func bmcInfoOutput(target ipmiTarget) ([]byte, error) {
-	return freeipmiOutput("bmc-info", target, "--get-device-id")
+	return freeipmiOutput("bmc-info", target)
 }
 
 func ipmiChassisOutput(target ipmiTarget) ([]byte, error) {
@@ -382,6 +383,10 @@ func getBMCInfoFirmwareRevision(ipmiOutput []byte) (string, error) {
 
 func getBMCInfoManufacturerID(ipmiOutput []byte) (string, error) {
 	return getValue(ipmiOutput, bmcInfoManufacturerIDRegex)
+}
+
+func getBMCInfoSystemFirmwareVersion(ipmiOutput []byte) (string, error) {
+	return getValue(ipmiOutput, bmcInfoSystemFirmwareVersionRegex)
 }
 
 func getSELInfoEntriesCount(ipmiOutput []byte) (float64, error) {
@@ -585,11 +590,16 @@ func collectBmcInfo(ch chan<- prometheus.Metric, target ipmiTarget) (int, error)
 		log.Errorf("Failed to parse bmc-info data from %s: %s", targetName(target.host), err)
 		return 0, err
 	}
+	systemFirmwareVersion, err := getBMCInfoSystemFirmwareVersion(output)
+	if err != nil {
+		log.Errorf("Failed to parse bmc-info data from %s: %s", targetName(target.host), err)
+		return 0, err
+	}
 	ch <- prometheus.MustNewConstMetric(
 		bmcInfo,
 		prometheus.GaugeValue,
 		1,
-		firmwareRevision, manufacturerID,
+		firmwareRevision, manufacturerID, systemFirmwareVersion,
 	)
 	return 1, nil
 }
