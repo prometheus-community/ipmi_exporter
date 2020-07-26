@@ -21,7 +21,7 @@ modules:
                 # to (session-timeout * #-of-collectors) milliseconds, so set the scrape
                 # timeout in Prometheus accordingly.
                 timeout: 10000
-                # Available collectors are bmc, ipmi, chassis, dcmi, and sel
+                # Available collectors are bmc, ipmi, chassis, dcmi, sel, and sm-lan-mode
                 # If _not_ specified, bmc, ipmi, chassis, and dcmi are used
                 collectors:
                 - bmc

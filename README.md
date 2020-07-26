@@ -64,8 +64,10 @@ Make sure you have the following tools from the
 
  - `ipmimonitoring`/`ipmi-sensors`
  - `ipmi-dcmi`
+ - `ipmi-raw`
  - `bmc-info`
  - `ipmi-sel`
+ - `ipmi-chassis`
 
 ### Running as unprivileged user
 
@@ -77,6 +79,7 @@ FreeIPMI tools as root, you can do the following:
      ipmi-exporter ALL = NOPASSWD: /usr/sbin/ipmimonitoring,\
                                    /usr/sbin/ipmi-sensors,\
                                    /usr/sbin/ipmi-dcmi,\
+                                   /usr/sbin/ipmi-raw,\
                                    /usr/sbin/bmc-info,\
                                    /usr/sbin/ipmi-chassis,\
                                    /usr/sbin/ipmi-sel
@@ -91,8 +94,10 @@ FreeIPMI tools as root, you can do the following:
       ln -s /home/ipmi-exporter/[script name] /home/ipmi-exporter/ipmimonitoring
       ln -s /home/ipmi-exporter/[script name] /home/ipmi-exporter/ipmi-sensors
       ln -s /home/ipmi-exporter/[script name] /home/ipmi-exporter/ipmi-dcmi
+      ln -s /home/ipmi-exporter/[script name] /home/ipmi-exporter/ipmi-raw
       ln -s /home/ipmi-exporter/[script name] /home/ipmi-exporter/bmc-info
       ln -s /home/ipmi-exporter/[script name] /home/ipmi-exporter/ipmi-chassis
+      ln -s /home/ipmi-exporter/[script name] /home/ipmi-exporter/ipmi-raw
       ````
   4. Execute ipmi-exporter with the option `--freeipmi.path=/home/ipmi-exporter`
 
@@ -267,8 +272,14 @@ These metrics provide data about the scrape itself:
      will not be available
    - `dcmi`: collects DCMI data, currently only power consumption. If it fails,
      power consumption metrics (see below) will not be available
-   - `bmc`: collects BMC details. If if fails, BMC info metrics (see below)
+   - `bmc`: collects BMC details. If it fails, BMC info metrics (see below)
      will not be available
+   - `chassis`: collects the current chassis power state (on/off). If it fails,
+     the chassis power state metric (see below) will not be available
+   - `sel`: collects system event log (SEL) details. If it fails, SEL metrics
+     (see below) will not be available
+   - `sm-lan-mode`: collects the "LAN mode" setting in the current BMC config.
+     If it fails, the LAN mode metric (see below) will not be available
  - `ipmi_scrape_duration_seconds` is the amount of time it took to retrieve the
    data
 
@@ -301,7 +312,7 @@ might suggest that they measure the same thing. This metric has no labels.
 
 ### System event log (SEL) info
 
-These metrics is only provided if the `sel` collector is enabled (it isn't by
+These metrics are only provided if the `sel` collector is enabled (it isn't by
 default).
 
 The metric `ipmi_sel_entries_count` contains the current number of entries in
@@ -311,9 +322,26 @@ no labels.
 The metric `ipmi_sel_free_space_bytes` contains the current number of free
 space for new SEL entries, in bytes. This metric has no labels.
 
+### Supermicro LAN mode setting
+
+This metric is only provided if the `sm-lan-mode` collector is enabled (it
+isn't by default).
+
+**NOTE:** This is a vendor-specific collector, it will only work on Supermicro
+hardware, possibly even only on _some_ Supermicro systems.
+
+**NOTE:** Retrieving this setting requires setting `privilege: "admin"` in the
+config.
+
+See e.g. https://www.supermicro.com/support/faqs/faq.cfm?faq=28159
+
+The metric `ipmi_config_lan_mode` contains the value for the current "LAN mode"
+setting (see link above): `0` for "dedicated", `1` for "shared", and `2` for
+"failover".
+
 ### Sensors
 
-These metric are only provided if the `ipmi` collector is enabled.
+These metrics are only provided if the `ipmi` collector is enabled.
 
 IPMI sensors in general have one or two distinct pieces of information that are
 of interest: a value and/or a state. The exporter always exports both, even if
