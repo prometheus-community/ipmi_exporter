@@ -32,6 +32,7 @@ var (
 	ipmiChassisPowerRegex             = regexp.MustCompile(`^System Power\s*:\s(?P<value>.*)`)
 	ipmiSELEntriesRegex               = regexp.MustCompile(`^Number of log entries\s*:\s(?P<value>[0-9.]*)`)
 	ipmiSELFreeSpaceRegex             = regexp.MustCompile(`^Free space remaining\s*:\s(?P<value>[0-9.]*)\s*bytes.*`)
+	ipmiSELEventsRegex                = regexp.MustCompile(`(?m)^(?P<id>[0-9]*)\s*\|\s*(?P<date>[a-zA-Z0-9.-]*)\s*\|\s*(?P<time>[0-9]*:[0-9]*:[0-9]*)\s*\|\s*(?P<name>[a-zA-Z]*\s*[#0-9]*)\s*\|\s*(?P<type>[^)]+?)\s*\|\s*(?P<event>[^)]+?)$`)
 	bmcInfoFirmwareRevisionRegex      = regexp.MustCompile(`^Firmware Revision\s*:\s*(?P<value>[0-9.]*).*`)
 	bmcInfoSystemFirmwareVersionRegex = regexp.MustCompile(`^System Firmware Version\s*:\s*(?P<value>[0-9.]*).*`)
 	bmcInfoManufacturerIDRegex        = regexp.MustCompile(`^Manufacturer ID\s*:\s*(?P<value>.*)`)
@@ -56,6 +57,15 @@ type sensorData struct {
 type ipmiTarget struct {
 	host   string
 	config IPMIConfig
+}
+
+type selEvent struct {
+	ID    string
+	Date  string
+	Time  string
+	Name  string
+	Type  string
+	Event string
 }
 
 var (
@@ -175,6 +185,13 @@ var (
 		prometheus.BuildFQName(namespace, "sel", "free_space_bytes"),
 		"Current free space remaining for new SEL entries.",
 		[]string{},
+		nil,
+	)
+
+	selEventsDesc = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "sel", "events"),
+		"Current SEL events.",
+		[]string{"id", "date", "time", "name", "type", "event"},
 		nil,
 	)
 
@@ -300,6 +317,10 @@ func ipmiSELOutput(target ipmiTarget) ([]byte, error) {
 	return freeipmiOutput("ipmi-sel", target, "--info")
 }
 
+func ipmiSELEvents(target ipmiTarget) ([]byte, error) {
+	return freeipmiOutput("ipmi-sel", target)
+}
+
 func splitMonitoringOutput(impiOutput []byte, excludeSensorIds []int64) ([]sensorData, error) {
 	var result []sensorData
 
@@ -358,6 +379,36 @@ func getValue(ipmiOutput []byte, regex *regexp.Regexp) (string, error) {
 	return "", fmt.Errorf("Could not find value in output: %s", string(ipmiOutput))
 }
 
+func getArray(ipmiOutput []byte, regex *regexp.Regexp) ([]selEvent, error) {
+	var events []selEvent
+	for _, line := range strings.Split(string(ipmiOutput), "\n") {
+
+		match := ipmiSELEventsRegex.FindStringSubmatch(line)
+		if match == nil {
+			continue
+		}
+		result := make(map[string]string)
+		for i, name := range ipmiSELEventsRegex.SubexpNames() {
+			if i != 0 && name != "" {
+				result[name] = match[i]
+			}
+		}
+		events = append(events, selEvent{
+			ID:    result["id"],
+			Date:  result["date"],
+			Time:  result["time"],
+			Name:  result["name"],
+			Type:  result["type"],
+			Event: result["event"],
+		})
+	}
+
+	if events != nil {
+		return events, nil
+	}
+	return nil, fmt.Errorf("Could not find sel events in output: %s", string(ipmiOutput))
+}
+
 func getCurrentPowerConsumption(ipmiOutput []byte) (float64, error) {
 	value, err := getValue(ipmiOutput, ipmiDCMICurrentPowerRegex)
 	if err != nil {
@@ -403,6 +454,14 @@ func getSELInfoFreeSpace(ipmiOutput []byte) (float64, error) {
 		return -1, err
 	}
 	return strconv.ParseFloat(value, 64)
+}
+
+func getSELEvents(ipmiOutput []byte) ([]selEvent, error) {
+	events, err := getArray(ipmiOutput, ipmiSELEventsRegex)
+	if err != nil {
+		return nil, err
+	}
+	return events, nil
 }
 
 // Describe implements Prometheus.Collector.
@@ -620,6 +679,14 @@ func collectSELInfo(ch chan<- prometheus.Metric, target ipmiTarget) (int, error)
 		log.Errorf("Failed to parse ipmi-sel data from %s: %s", targetName(target.host), err)
 		return 0, err
 	}
+
+	output, err = ipmiSELEvents(target)
+	eventArray, err := getSELEvents(output)
+	if err != nil {
+		log.Debugf("Failed to collect ipmi-sel events from %s: %s", targetName(target.host), err)
+		return 0, err
+	}
+
 	ch <- prometheus.MustNewConstMetric(
 		selEntriesCountDesc,
 		prometheus.GaugeValue,
@@ -630,6 +697,17 @@ func collectSELInfo(ch chan<- prometheus.Metric, target ipmiTarget) (int, error)
 		prometheus.GaugeValue,
 		freeSpace,
 	)
+
+	for _, e := range eventArray {
+
+		ch <- prometheus.MustNewConstMetric(
+			selEventsDesc,
+			prometheus.GaugeValue,
+			1,
+			e.ID, e.Date, e.Time, e.Name, e.Type, e.Event,
+		)
+	}
+
 	return 1, nil
 }
 
