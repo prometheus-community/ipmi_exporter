@@ -294,6 +294,9 @@ version). Example:
 
     ipmi_bmc_info{firmware_revision="1.66",manufacturer_id="Dell Inc. (674)",system_firmware_version="2.6.1"} 1
 
+**Note:** some systems do not expose the system's firmware version, in which
+case it will be exported as `"N/A"`.
+
 ### Chassis Power State
 
 This metric is only provided if the `chassis` collector is enabled.

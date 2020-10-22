@@ -592,8 +592,9 @@ func collectBmcInfo(ch chan<- prometheus.Metric, target ipmiTarget) (int, error)
 	}
 	systemFirmwareVersion, err := getBMCInfoSystemFirmwareVersion(output)
 	if err != nil {
-		log.Errorf("Failed to parse bmc-info data from %s: %s", targetName(target.host), err)
-		return 0, err
+		// This one is not always available.
+		log.Debugf("Failed to parse bmc-info data from %s: %s", targetName(target.host), err)
+		systemFirmwareVersion = "N/A"
 	}
 	ch <- prometheus.MustNewConstMetric(
 		bmcInfo,
