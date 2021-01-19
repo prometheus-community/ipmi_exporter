@@ -11,9 +11,23 @@ supports IPMI over RMCP - one exporter running on one host can be used to
 monitor a large number of IPMI interfaces by passing the `target` parameter to
 a scrape.
 
+## Installation
 The exporter relies on tools from the
 [FreeIPMI](https://www.gnu.org/software/freeipmi/) suite for the actual IPMI
 implementation.
+
+``` 
+wget https://ftp.gnu.org/gnu/freeipmi/freeipmi-1.6.6.tar.gz
+tar xzvf freeipmi-1.6.6.tar.gz
+cd freeipmi-1.6.6
+sudo apt-get install build-essential libgcrypt11-dev
+./configure
+make
+sudo make install
+sudo ldconfig
+
+```
+
 
 ## Installation
 
