@@ -292,6 +292,10 @@ func bmcInfoOutput(target ipmiTarget) ([]byte, error) {
 	return freeipmiOutput("bmc-info", target)
 }
 
+func bmcInfoDeviceIdOutput(target ipmiTarget) ([]byte, error) {
+	return freeipmiOutput("bmc-info", target, "--get-device-id")
+}
+
 func ipmiChassisOutput(target ipmiTarget) ([]byte, error) {
 	return freeipmiOutput("ipmi-chassis", target, "--get-chassis-status")
 }
@@ -605,6 +609,31 @@ func collectBmcInfo(ch chan<- prometheus.Metric, target ipmiTarget) (int, error)
 	return 1, nil
 }
 
+func collectBmcInfoDeviceId(ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
+	output, err := bmcInfoDeviceIdOutput(target)
+	if err != nil {
+		log.Debugf("Failed to collect bmc-info data from %s: %s", targetName(target.host), err)
+		return 0, err
+	}
+	firmwareRevision, err := getBMCInfoFirmwareRevision(output)
+	if err != nil {
+		log.Errorf("Failed to parse bmc-info data from %s: %s", targetName(target.host), err)
+		return 0, err
+	}
+	manufacturerID, err := getBMCInfoManufacturerID(output)
+	if err != nil {
+		log.Errorf("Failed to parse bmc-info data from %s: %s", targetName(target.host), err)
+		return 0, err
+	}
+	ch <- prometheus.MustNewConstMetric(
+		bmcInfo,
+		prometheus.GaugeValue,
+		1,
+		firmwareRevision, manufacturerID, "N/A",
+	)
+	return 1, nil
+}
+
 func collectSELInfo(ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	output, err := ipmiSELOutput(target)
 	if err != nil {
@@ -674,6 +703,8 @@ func (c collector) Collect(ch chan<- prometheus.Metric) {
 			up, _ = collectDCMI(ch, target)
 		case "bmc":
 			up, _ = collectBmcInfo(ch, target)
+		case "bmc-device-id":
+			up, _ = collectBmcInfoDeviceId(ch, target)
 		case "chassis":
 			up, _ = collectChassisState(ch, target)
 		case "sel":

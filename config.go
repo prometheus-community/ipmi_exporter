@@ -40,7 +40,7 @@ type IPMIConfig struct {
 	XXX map[string]interface{} `yaml:",inline"`
 }
 
-var emptyConfig = IPMIConfig{Collectors: []string{"ipmi", "dcmi", "bmc", "chassis"}}
+var emptyConfig = IPMIConfig{Collectors: []string{"ipmi", "dcmi", "bmc", "bmc-device-id", "chassis"}}
 
 // CollectorName is used for unmarshaling the list of collectors in the yaml config file
 type CollectorName string
@@ -78,9 +78,19 @@ func (s *IPMIConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if err := checkOverflow(s.XXX, "modules"); err != nil {
 		return err
 	}
+
+	usesBmc := false
 	for _, c := range s.Collectors {
-		if !(c == "ipmi" || c == "sm-lan-mode" || c == "dcmi" || c == "bmc" || c == "chassis" || c == "sel") {
+		if !(c == "ipmi" || c == "sm-lan-mode" || c == "dcmi" || c == "bmc" || c == "bmc-device-id" || c == "chassis" || c == "sel") {
 			return fmt.Errorf("unknown collector name: %s", c)
+		}
+
+		if c == "bmc" || c == "bmc-device-id" {
+			if !usesBmc {
+				usesBmc = true
+			} else {
+				return fmt.Errorf("cannot use 'bmc' and 'bmc-device-id' collectors at the same time")
+			}
 		}
 	}
 	return nil

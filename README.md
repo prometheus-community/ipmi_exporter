@@ -285,7 +285,14 @@ These metrics provide data about the scrape itself:
 
 ### BMC info
 
-This metric is only provided if the `bmc` collector is enabled.
+This metric is only provided if the `bmc` or `bmc-device-id` collector is
+enabled.
+
+**Note:** you can only use either the `bmc` or the `bmc-device-id` collector,
+not both. The `bmc` collector attempts to make the system firmware revision
+available, which breaks work on some older systems. In this case, the
+`bmc-device-id` collector can be used, but the system firmware revision will
+always be `"N/A"`.
 
 For some basic information, there is a constant metric `ipmi_bmc_info` with
 value `1` and labels providing the firmware revision and manufacturer as
@@ -294,8 +301,8 @@ version). Example:
 
     ipmi_bmc_info{firmware_revision="1.66",manufacturer_id="Dell Inc. (674)",system_firmware_version="2.6.1"} 1
 
-**Note:** some systems do not expose the system's firmware version, in which
-case it will be exported as `"N/A"`.
+**Note:** some systems do not expose the system's firmware version, even if the
+`bmc` collector works. In this case it will be exported as `"N/A"`.
 
 ### Chassis Power State
 
