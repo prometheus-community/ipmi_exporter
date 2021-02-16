@@ -575,13 +575,21 @@ func collectChassisState(ch chan<- prometheus.Metric, target ipmiTarget) (int, e
 }
 
 func collectBmcInfo(ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
-	output, err := bmcInfoOutput(target)
-	if err != nil {
-		log.Debugf("Failed to collect bmc-info data from %s: %s", targetName(target.host), err)
-		return 0, err
-	}
+	output, cmderr := bmcInfoOutput(target)
+	// Workaround for an issue described here: https://github.com/soundcloud/ipmi_exporter/issues/57
+	// The command may fail, but produce usable output (minus the system firmware revision).
+	// Try to recover gracefully from that situation by first trying to parse the output, and only
+	// raise the initial error if that also fails.
+
 	firmwareRevision, err := getBMCInfoFirmwareRevision(output)
 	if err != nil {
+		// If the command failed, return that error now, we tried to recover but to no avail.
+		if cmderr != nil {
+			log.Debugf("Failed to collect bmc-info data from %s: %s", targetName(target.host), cmderr)
+			return 0, cmderr
+		}
+
+		// Handling of successful command but failed parsing.
 		log.Errorf("Failed to parse bmc-info data from %s: %s", targetName(target.host), err)
 		return 0, err
 	}
