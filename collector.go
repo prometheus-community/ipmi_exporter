@@ -275,7 +275,7 @@ func freeipmiOutput(cmd string, target ipmiTarget, arg ...string) ([]byte, error
 	log.Debugf("Executing %s %v", fqcmd, args)
 	out, err := exec.Command(fqcmd, args...).CombinedOutput()
 	if err != nil {
-		log.Errorf("Error while calling %s for %s: %s", cmd, targetName(target.host), out)
+		log.Warnf("Error while calling %s for %s: %s", cmd, targetName(target.host), out)
 	}
 	return out, err
 }
@@ -539,7 +539,7 @@ func collectSmLanMode(ch chan<- prometheus.Metric, target ipmiTarget) (int, erro
 func collectDCMI(ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	output, err := ipmiDCMIOutput(target)
 	if err != nil {
-		log.Debugf("Failed to collect ipmi-dcmi data from %s: %s", targetName(target.host), err)
+		log.Errorf("Failed to collect ipmi-dcmi data from %s: %s", targetName(target.host), err)
 		return 0, err
 	}
 	currentPowerConsumption, err := getCurrentPowerConsumption(output)
@@ -558,7 +558,7 @@ func collectDCMI(ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 func collectChassisState(ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	output, err := ipmiChassisOutput(target)
 	if err != nil {
-		log.Debugf("Failed to collect ipmi-chassis data from %s: %s", targetName(target.host), err)
+		log.Errorf("Failed to collect ipmi-chassis data from %s: %s", targetName(target.host), err)
 		return 0, err
 	}
 	currentChassisPowerState, err := getChassisPowerState(output)
@@ -575,13 +575,21 @@ func collectChassisState(ch chan<- prometheus.Metric, target ipmiTarget) (int, e
 }
 
 func collectBmcInfo(ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
-	output, err := bmcInfoOutput(target)
-	if err != nil {
-		log.Debugf("Failed to collect bmc-info data from %s: %s", targetName(target.host), err)
-		return 0, err
-	}
+	output, cmderr := bmcInfoOutput(target)
+	// Workaround for an issue described here: https://github.com/soundcloud/ipmi_exporter/issues/57
+	// The command may fail, but produce usable output (minus the system firmware revision).
+	// Try to recover gracefully from that situation by first trying to parse the output, and only
+	// raise the initial error if that also fails.
+
 	firmwareRevision, err := getBMCInfoFirmwareRevision(output)
 	if err != nil {
+		// If the command failed, return that error now, we tried to recover but to no avail.
+		if cmderr != nil {
+			log.Errorf("Failed to collect bmc-info data from %s: %s", targetName(target.host), cmderr)
+			return 0, cmderr
+		}
+
+		// Handling of successful command but failed parsing.
 		log.Errorf("Failed to parse bmc-info data from %s: %s", targetName(target.host), err)
 		return 0, err
 	}
@@ -608,7 +616,7 @@ func collectBmcInfo(ch chan<- prometheus.Metric, target ipmiTarget) (int, error)
 func collectSELInfo(ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	output, err := ipmiSELOutput(target)
 	if err != nil {
-		log.Debugf("Failed to collect ipmi-sel data from %s: %s", targetName(target.host), err)
+		log.Errorf("Failed to collect ipmi-sel data from %s: %s", targetName(target.host), err)
 		return 0, err
 	}
 	entriesCount, err := getSELInfoEntriesCount(output)
