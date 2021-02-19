@@ -281,7 +281,7 @@ func freeipmiOutput(cmd string, target ipmiTarget, arg ...string) ([]byte, error
 }
 
 func ipmiMonitoringOutput(target ipmiTarget) ([]byte, error) {
-	return freeipmiOutput("ipmimonitoring", target, "-Q", "--ignore-unrecognized-events", "--comma-separated-output", "--no-header-output", "--sdr-cache-recreate")
+	return freeipmiOutput("ipmimonitoring", target, "-Q", "--ignore-unrecognized-events", "--comma-separated-output", "--no-header-output", "--sdr-cache-recreate", "--output-event-bitmask")
 }
 
 func ipmiDCMIOutput(target ipmiTarget) ([]byte, error) {
