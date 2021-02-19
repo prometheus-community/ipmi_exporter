@@ -275,7 +275,7 @@ func freeipmiOutput(cmd string, target ipmiTarget, arg ...string) ([]byte, error
 	log.Debugf("Executing %s %v", fqcmd, args)
 	out, err := exec.Command(fqcmd, args...).CombinedOutput()
 	if err != nil {
-		log.Errorf("Error while calling %s for %s: %s", cmd, targetName(target.host), out)
+		log.Warnf("Error while calling %s for %s: %s", cmd, targetName(target.host), out)
 	}
 	return out, err
 }
@@ -539,7 +539,7 @@ func collectSmLanMode(ch chan<- prometheus.Metric, target ipmiTarget) (int, erro
 func collectDCMI(ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	output, err := ipmiDCMIOutput(target)
 	if err != nil {
-		log.Debugf("Failed to collect ipmi-dcmi data from %s: %s", targetName(target.host), err)
+		log.Errorf("Failed to collect ipmi-dcmi data from %s: %s", targetName(target.host), err)
 		return 0, err
 	}
 	currentPowerConsumption, err := getCurrentPowerConsumption(output)
@@ -558,7 +558,7 @@ func collectDCMI(ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 func collectChassisState(ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	output, err := ipmiChassisOutput(target)
 	if err != nil {
-		log.Debugf("Failed to collect ipmi-chassis data from %s: %s", targetName(target.host), err)
+		log.Errorf("Failed to collect ipmi-chassis data from %s: %s", targetName(target.host), err)
 		return 0, err
 	}
 	currentChassisPowerState, err := getChassisPowerState(output)
@@ -585,7 +585,7 @@ func collectBmcInfo(ch chan<- prometheus.Metric, target ipmiTarget) (int, error)
 	if err != nil {
 		// If the command failed, return that error now, we tried to recover but to no avail.
 		if cmderr != nil {
-			log.Debugf("Failed to collect bmc-info data from %s: %s", targetName(target.host), cmderr)
+			log.Errorf("Failed to collect bmc-info data from %s: %s", targetName(target.host), cmderr)
 			return 0, cmderr
 		}
 
@@ -616,7 +616,7 @@ func collectBmcInfo(ch chan<- prometheus.Metric, target ipmiTarget) (int, error)
 func collectSELInfo(ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	output, err := ipmiSELOutput(target)
 	if err != nil {
-		log.Debugf("Failed to collect ipmi-sel data from %s: %s", targetName(target.host), err)
+		log.Errorf("Failed to collect ipmi-sel data from %s: %s", targetName(target.host), err)
 		return 0, err
 	}
 	entriesCount, err := getSELInfoEntriesCount(output)
