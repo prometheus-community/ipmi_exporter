@@ -1,5 +1,5 @@
 # Build /go/bin/ipmi_exporter
-FROM quay.io/prometheus/golang-builder:latest AS builder
+FROM quay.io/prometheus/golang-builder:1.15-base AS builder
 ADD . /go/src/github.com/soundcloud/ipmi_exporter/
 RUN cd /go/src/github.com/soundcloud/ipmi_exporter && make
 
