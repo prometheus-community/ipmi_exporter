@@ -59,3 +59,28 @@ modules:
                 # https://www.gnu.org/software/freeipmi/manpages/man8/ipmi-sensors.8.html#lbAL
                 workaround_flags:
                 - discretereading
+                # If you require additional command line arguments (e.g. --bridge-sensors for ipmimonitoring),
+                # you can specify them per collector - BE CAREFUL, you can easily break the exporter with this!
+                custom_args:
+                        ipmi:
+                        - "--bridge-sensors"
+        advanced:
+                # Use these settings when scraped with module=advanced.
+                user: "some_user"
+                pass: "secret_pw"
+                privilege: "admin"
+                driver: "LAN"
+                collectors:
+                - ipmi
+                - sel
+                # USING ANY OF THE BELOW VOIDS YOUR WARRANTY! YOU MAY GET BITTEN BY SHARKS!
+                # You can override the command to be executed for a collector. Paired with
+                # custom_args, this can be used to e.g. execute the IPMI tools with sudo:
+                collector_cmd:
+                        ipmi: sudo
+                        sel: sudo
+                custom_args:
+                        ipmi:
+                        - "ipmimonitoring"
+                        sel:
+                        - "ipmi-sel"

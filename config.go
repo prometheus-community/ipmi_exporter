@@ -6,9 +6,79 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
+
+	"github.com/soundcloud/ipmi_exporter/freeipmi"
+
 	yaml "gopkg.in/yaml.v2"
 )
+
+// CollectorName is used for unmarshaling the list of collectors in the yaml config file
+type CollectorName string
+
+// ConfiguredCollector wraps an existing collector implementation,
+// potentially altering its default settings.
+type ConfiguredCollector struct {
+	collector    collector
+	command      string
+	default_args []string
+	custom_args  []string
+}
+
+func (c ConfiguredCollector) Name() CollectorName {
+	return c.collector.Name()
+}
+
+func (c ConfiguredCollector) Cmd() string {
+	if c.command != "" {
+		return c.command
+	}
+	return c.collector.Cmd()
+}
+
+func (c ConfiguredCollector) Args() []string {
+	args := []string{}
+	if c.custom_args != nil {
+		// custom args come first, this way it is quite easy to
+		// override a collector to use e.g. sudo
+		args = append(args, c.custom_args...)
+	}
+	if c.default_args != nil {
+		args = append(args, c.default_args...)
+	} else {
+		args = append(args, c.collector.Args()...)
+	}
+	return args
+}
+
+func (c ConfiguredCollector) Collect(output freeipmi.Result, ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
+	return c.collector.Collect(output, ch, target)
+}
+
+func (c CollectorName) GetInstance() (collector, error) {
+	// This is where a new collector would have to be "registered"
+	switch c {
+	case IPMICollectorName:
+		return IPMICollector{}, nil
+	case BMCCollectorName:
+		return BMCCollector{}, nil
+	case SELCollectorName:
+		return SELCollector{}, nil
+	case DCMICollectorName:
+		return DCMICollector{}, nil
+	case ChassisCollectorName:
+		return ChassisCollector{}, nil
+	case SMLANModeCollectorName:
+		return SMLANModeCollector{}, nil
+	}
+	return nil, fmt.Errorf("invalid collector: %s", string(c))
+}
+
+func (c CollectorName) IsValid() error {
+	_, err := c.GetInstance()
+	return err
+}
 
 // Config is the Go representation of the yaml config file.
 type Config struct {
@@ -27,23 +97,29 @@ type SafeConfig struct {
 // IPMIConfig is the Go representation of a module configuration in the yaml
 // config file.
 type IPMIConfig struct {
-	User             string   `yaml:"user"`
-	Password         string   `yaml:"pass"`
-	Privilege        string   `yaml:"privilege"`
-	Driver           string   `yaml:"driver"`
-	Timeout          uint32   `yaml:"timeout"`
-	Collectors       []string `yaml:"collectors"`
-	ExcludeSensorIDs []int64  `yaml:"exclude_sensor_ids"`
-	WorkaroundFlags  []string `yaml:"workaround_flags"`
+	User             string                     `yaml:"user"`
+	Password         string                     `yaml:"pass"`
+	Privilege        string                     `yaml:"privilege"`
+	Driver           string                     `yaml:"driver"`
+	Timeout          uint32                     `yaml:"timeout"`
+	Collectors       []CollectorName            `yaml:"collectors"`
+	ExcludeSensorIDs []int64                    `yaml:"exclude_sensor_ids"`
+	WorkaroundFlags  []string                   `yaml:"workaround_flags"`
+	CollectorCmd     map[CollectorName]string   `yaml:"collector_cmd"`
+	CollectorArgs    map[CollectorName][]string `yaml:"default_args"`
+	CustomArgs       map[CollectorName][]string `yaml:"custom_args"`
 
 	// Catches all undefined fields and must be empty after parsing.
 	XXX map[string]interface{} `yaml:",inline"`
 }
 
-var emptyConfig = IPMIConfig{Collectors: []string{"ipmi", "dcmi", "bmc", "chassis"}}
+type Args struct {
+	Args map[string][]string
+}
 
-// CollectorName is used for unmarshaling the list of collectors in the yaml config file
-type CollectorName string
+var defaultConfig = IPMIConfig{
+	Collectors: []CollectorName{IPMICollectorName, DCMICollectorName, BMCCollectorName, ChassisCollectorName},
+}
 
 func checkOverflow(m map[string]interface{}, ctx string) error {
 	if len(m) > 0 {
@@ -70,7 +146,7 @@ func (s *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 // UnmarshalYAML implements the yaml.Unmarshaler interface.
 func (s *IPMIConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	*s = emptyConfig
+	*s = defaultConfig
 	type plain IPMIConfig
 	if err := unmarshal((*plain)(s)); err != nil {
 		return err
@@ -79,11 +155,54 @@ func (s *IPMIConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 	for _, c := range s.Collectors {
-		if !(c == "ipmi" || c == "sm-lan-mode" || c == "dcmi" || c == "bmc" || c == "chassis" || c == "sel") {
-			return fmt.Errorf("unknown collector name: %s", c)
+		if err := c.IsValid(); err != nil {
+			return err
 		}
 	}
 	return nil
+}
+
+func (c IPMIConfig) GetCollectors() []collector {
+	result := []collector{}
+	for _, co := range c.Collectors {
+		// At this point validity has already been checked
+		i, _ := co.GetInstance()
+		cc := ConfiguredCollector{
+			collector:    i,
+			command:      c.CollectorCmd[i.Name()],
+			default_args: c.CollectorArgs[i.Name()],
+			custom_args:  c.CustomArgs[i.Name()],
+		}
+		result = append(result, cc)
+	}
+	return result
+}
+
+func (c IPMIConfig) GetFreeipmiConfig() string {
+	var b strings.Builder
+	if c.Driver != "" {
+		fmt.Fprintf(&b, "driver-type %s\n", c.Driver)
+	}
+	if c.Privilege != "" {
+		fmt.Fprintf(&b, "privilege-level %s\n", c.Privilege)
+	}
+	if c.User != "" {
+		fmt.Fprintf(&b, "username %s\n", c.User)
+	}
+	if c.Password != "" {
+		fmt.Fprintf(&b, "password %s\n", freeipmi.EscapePassword(c.Password))
+	}
+	if c.Timeout != 0 {
+		fmt.Fprintf(&b, "session-timeout %d\n", c.Timeout)
+	}
+	if len(c.WorkaroundFlags) > 0 {
+		fmt.Fprintf(&b, "workaround-flags")
+		for _, flag := range c.WorkaroundFlags {
+			fmt.Fprintf(&b, " %s", flag)
+		}
+		fmt.Fprintln(&b)
+	}
+	return b.String()
 }
 
 // ReloadConfig reloads the config in a concurrency-safe way. If the configFile
@@ -148,7 +267,7 @@ func (sc *SafeConfig) ConfigForTarget(target, module string) IPMIConfig {
 		if !ok {
 			// This is probably fine for running locally, so not making this a warning
 			log.Debugf("Needed default config for target %s, but none configured, using FreeIPMI defaults", targetName(target))
-			config = emptyConfig
+			config = defaultConfig
 		}
 	}
 

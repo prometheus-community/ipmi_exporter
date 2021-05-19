@@ -54,7 +54,7 @@ func remoteIPMIHandler(w http.ResponseWriter, r *http.Request) {
 	log.Debugf("Scraping target '%s' with module '%s'", target, module)
 
 	registry := prometheus.NewRegistry()
-	remoteCollector := collector{target: target, module: module, config: sc}
+	remoteCollector := metaCollector{target: target, module: module, config: sc}
 	registry.MustRegister(remoteCollector)
 	h := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
 	h.ServeHTTP(w, r)
@@ -108,7 +108,7 @@ func main() {
 		}
 	}()
 
-	localCollector := collector{target: targetLocal, module: "default", config: sc}
+	localCollector := metaCollector{target: targetLocal, module: "default", config: sc}
 	prometheus.MustRegister(&localCollector)
 
 	http.Handle("/metrics", promhttp.Handler())       // Regular metrics endpoint for local IPMI metrics.
