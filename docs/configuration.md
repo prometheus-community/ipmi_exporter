@@ -91,7 +91,7 @@ add the following to your Prometheus config:
 ```
 - job_name: ipmi
   params:
-    module: default
+    module: ['default']
   scrape_interval: 1m
   scrape_timeout: 30s
   metrics_path: /ipmi
