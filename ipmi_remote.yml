@@ -20,6 +20,7 @@ modules:
                 # The session timeout is in milliseconds. Note that a scrape can take up
                 # to (session-timeout * #-of-collectors) milliseconds, so set the scrape
                 # timeout in Prometheus accordingly.
+                # Must be larger than the retransmission timeout, which defaults to 1000.
                 timeout: 10000
                 # Available collectors are bmc, ipmi, chassis, dcmi, sel, and sm-lan-mode
                 # If _not_ specified, bmc, ipmi, chassis, and dcmi are used
