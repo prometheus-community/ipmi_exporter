@@ -1,17 +1,12 @@
-# Build /go/bin/ipmi_exporter
-FROM quay.io/prometheus/golang-builder:1.15-base AS builder
-ADD . /go/src/github.com/soundcloud/ipmi_exporter/
-RUN cd /go/src/github.com/soundcloud/ipmi_exporter && make
+ARG ARCH="amd64"
+ARG OS="linux"
+FROM quay.io/prometheus/busybox-${OS}-${ARCH}:glibc
+LABEL maintainer="The Prometheus Authors <prometheus-developers@googlegroups.com>"
 
-# Container image
-FROM ubuntu:18.04
-WORKDIR /
-RUN apt-get update \
-    && apt-get install freeipmi-tools -y --no-install-recommends \
-    && rm -rf /var/lib/apt/lists/*
+ARG ARCH="amd64"
+ARG OS="linux"
+COPY .build/${OS}-${ARCH}/ipmi_exporter /bin/ipmi_exporter
 
-COPY --from=builder /go/src/github.com/soundcloud/ipmi_exporter/ipmi_exporter /bin/ipmi_exporter
-
-EXPOSE 9290
-ENTRYPOINT ["/bin/ipmi_exporter"]
-CMD ["--config.file", "/config.yml"]
+EXPOSE      9290
+USER        nobody
+ENTRYPOINT  [ "/bin/ipmi_exporter" ]

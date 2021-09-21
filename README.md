@@ -1,7 +1,7 @@
 Prometheus IPMI Exporter
 ========================
 
-[![Build Status](https://api.cirrus-ci.com/github/soundcloud/ipmi_exporter.svg?branch=master)](https://cirrus-ci.com/github/soundcloud/ipmi_exporter)
+[![Build Status](https://circleci.com/gh/prometheus-community/ipmi_exporter.svg?style=svg)](https://circleci.com/gh/prometheus-community/ipmi_exporter)
 
 This is an IPMI exporter for [Prometheus](https://prometheus.io).
 
@@ -18,7 +18,7 @@ implementation.
 ## Installation
 
 For most use-cases, simply download the [the latest
-release](https://github.com/soundcloud/ipmi_exporter/releases).
+release](https://github.com/prometheus-community/ipmi_exporter/releases).
 
 ### Building from source
 
@@ -32,7 +32,7 @@ This uses the common prometheus tooling to build and run some tests.
 Alternatively, you can use the standard Go tooling, which will install the
 executable in `$GOPATH/bin`:
 
-    go get github.com/soundcloud/ipmi_exporter
+    go get github.com/prometheus-community/ipmi_exporter
 
 ### Building a Docker container
 
