@@ -1,0 +1,71 @@
+---
+version: 2.1
+
+orbs:
+  prometheus: prometheus/prometheus@0.11.0
+
+executors:
+  # Whenever the Go version is updated here, .promu.yml should
+  # also be updated.
+  golang:
+    docker:
+    - image: circleci/golang:1.17
+
+jobs:
+  test:
+    executor: golang
+
+    steps:
+    - prometheus/setup_environment
+    - run: make
+    - prometheus/store_artifact:
+        file: ipmi_exporter
+
+  codespell:
+    docker:
+    - image: circleci/python
+
+    steps:
+    - checkout
+    - run: sudo pip install codespell
+    - run: codespell --skip=".git,./vendor,ttar,go.mod,go.sum,*pem" -L uint,packages\',uptodate
+
+workflows:
+  version: 2
+  ipmi_exporter:
+    jobs:
+    - test:
+        filters:
+          tags:
+            only: /.*/
+    - prometheus/build:
+        name: build
+        filters:
+          tags:
+            only: /.*/
+    - codespell:
+        filters:
+          tags:
+            only: /.*/
+    - prometheus/publish_master:
+        context: org-context
+        docker_hub_organization: prometheuscommunity
+        quay_io_organization: prometheuscommunity
+        requires:
+        - test
+        - build
+        filters:
+          branches:
+            only: master
+    - prometheus/publish_release:
+        context: org-context
+        docker_hub_organization: prometheuscommunity
+        quay_io_organization: prometheuscommunity
+        requires:
+        - test
+        - build
+        filters:
+          tags:
+            only: /^v.*/
+          branches:
+            ignore: /.*/
