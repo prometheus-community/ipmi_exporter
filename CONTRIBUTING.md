@@ -42,5 +42,5 @@ bug.
 [fork]: http://help.github.com/fork-a-repo
 [free-sw]: http://www.fsf.org/licensing/essays/free-sw.html
 [gist]: https://gist.github.com
-[issues]: https://github.com/soundcloud/ipmi_exporter/issues
+[issues]: https://github.com/prometheus-community/ipmi_exporter/issues
 [pr]: http://help.github.com/send-pull-requests

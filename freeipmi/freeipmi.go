@@ -1,3 +1,16 @@
+// Copyright 2021 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package freeipmi
 
 import (
@@ -207,7 +220,7 @@ func GetChassisPowerState(ipmiOutput Result) (float64, error) {
 }
 
 func GetBMCInfoFirmwareRevision(ipmiOutput Result) (string, error) {
-	// Workaround for an issue described here: https://github.com/soundcloud/ipmi_exporter/issues/57
+	// Workaround for an issue described here: https://github.com/prometheus-community/ipmi_exporter/issues/57
 	// The command may fail, but produce usable output (minus the system firmware revision).
 	// Try to recover gracefully from that situation by first trying to parse the output, and only
 	// raise the initial error if that also fails.
@@ -221,7 +234,7 @@ func GetBMCInfoFirmwareRevision(ipmiOutput Result) (string, error) {
 }
 
 func GetBMCInfoManufacturerID(ipmiOutput Result) (string, error) {
-	// Workaround for an issue described here: https://github.com/soundcloud/ipmi_exporter/issues/57
+	// Workaround for an issue described here: https://github.com/prometheus-community/ipmi_exporter/issues/57
 	// The command may fail, but produce usable output (minus the system firmware revision).
 	// Try to recover gracefully from that situation by first trying to parse the output, and only
 	// raise the initial error if that also fails.

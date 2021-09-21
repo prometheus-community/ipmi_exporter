@@ -4,9 +4,9 @@ go:
     version: 1.17
 
 repository:
-    path: github.com/soundcloud/ipmi_exporter
+    path: github.com/prometheus-community/ipmi_exporter
 build:
-    flags: -mod=vendor -a -tags 'netgo static_build'
+    flags: -a -tags 'netgo static_build'
     ldflags: |
         -X github.com/prometheus/common/version.Version={{.Version}}
         -X github.com/prometheus/common/version.Revision={{.Revision}}
@@ -16,3 +16,17 @@ build:
 tarball:
     files:
         - LICENSE
+crossbuild:
+    platforms:
+        # Disable aix: undefined: syscall.Mkfifo
+        # - aix
+        - darwin
+        - dragonfly
+        - freebsd
+        # Disable illumos: undefined: syscall.Mkfifo
+        # - illumos
+        - linux
+        - netbsd
+        - openbsd
+        # Disable windows: undefined: syscall.Mkfifo
+        # - windows
