@@ -17,8 +17,8 @@ import (
 	"math"
 	"strconv"
 
+	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/common/log"
 
 	"github.com/prometheus-community/ipmi_exporter/freeipmi"
 )
@@ -138,7 +138,7 @@ func (c IPMICollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metr
 	excludeIds := target.config.ExcludeSensorIDs
 	results, err := freeipmi.GetSensorData(result, excludeIds)
 	if err != nil {
-		log.Errorf("Failed to collect sensor data from %s: %s", targetName(target.host), err)
+		level.Error(logger).Log("msg", "Failed to collect sensor data", "target", targetName(target.host), "error", err)
 		return 0, err
 	}
 	for _, data := range results {
@@ -154,11 +154,11 @@ func (c IPMICollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metr
 		case "N/A":
 			state = math.NaN()
 		default:
-			log.Errorf("Unknown sensor state: '%s'\n", data.State)
+			level.Error(logger).Log("msg", "Unknown sensor state", "state", data.State)
 			state = math.NaN()
 		}
 
-		log.Debugf("Got values: %v\n", data)
+		level.Debug(logger).Log("msg", "Got values", "data", data)
 
 		switch data.Unit {
 		case "RPM":

@@ -14,8 +14,8 @@
 package main
 
 import (
+	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/common/log"
 
 	"github.com/prometheus-community/ipmi_exporter/freeipmi"
 )
@@ -50,7 +50,7 @@ func (c DCMICollector) Args() []string {
 func (c DCMICollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	currentPowerConsumption, err := freeipmi.GetCurrentPowerConsumption(result)
 	if err != nil {
-		log.Errorf("Failed to collect DCMI data from %s: %s", targetName(target.host), err)
+		level.Error(logger).Log("msg", "Failed to collect DCMI data", "target", targetName(target.host), "error", err)
 		return 0, err
 	}
 	ch <- prometheus.MustNewConstMetric(

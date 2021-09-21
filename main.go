@@ -20,9 +20,11 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/prometheus/common/log"
+	"github.com/prometheus/common/promlog"
+	"github.com/prometheus/common/promlog/flag"
 	"github.com/prometheus/common/version"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
 )
@@ -45,6 +47,9 @@ var (
 		C: &Config{},
 	}
 	reloadCh chan chan error
+
+	promlogConfig = &promlog.Config{}
+	logger        = promlog.New(promlogConfig)
 )
 
 func remoteIPMIHandler(w http.ResponseWriter, r *http.Request) {
@@ -64,7 +69,7 @@ func remoteIPMIHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Debugf("Scraping target '%s' with module '%s'", target, module)
+	level.Debug(logger).Log("msg", "Scraping target", "target", target, "module", module)
 
 	registry := prometheus.NewRegistry()
 	remoteCollector := metaCollector{target: target, module: module, config: sc}
@@ -82,22 +87,23 @@ func updateConfiguration(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, fmt.Sprintf("failed to reload config: %s", err), http.StatusInternalServerError)
 		}
 	default:
-		log.Errorf("Only POST requests allowed for %s", r.URL)
+		level.Error(logger).Log("msg", "Only POST requests allowed", "url", r.URL)
 		w.Header().Set("Allow", "POST")
 		http.Error(w, "Only POST requests allowed", http.StatusMethodNotAllowed)
 	}
 }
 
 func main() {
-	log.AddFlags(kingpin.CommandLine)
+	flag.AddFlags(kingpin.CommandLine, promlogConfig)
 	kingpin.HelpFlag.Short('h')
 	kingpin.Version(version.Print("ipmi_exporter"))
 	kingpin.Parse()
-	log.Infoln("Starting ipmi_exporter")
+	level.Info(logger).Log("msg", "Starting ipmi_exporter", "version", version.Info())
 
 	// Bail early if the config is bad.
 	if err := sc.ReloadConfig(*configFile); err != nil {
-		log.Fatalf("Error parsing config file: %s", err)
+		level.Error(logger).Log("msg", "Error parsing config file", "error", err)
+		os.Exit(1)
 	}
 
 	hup := make(chan os.Signal)
@@ -108,11 +114,11 @@ func main() {
 			select {
 			case <-hup:
 				if err := sc.ReloadConfig(*configFile); err != nil {
-					log.Errorf("Error reloading config: %s", err)
+					level.Error(logger).Log("msg", "Error reloading config", "error", err)
 				}
 			case rc := <-reloadCh:
 				if err := sc.ReloadConfig(*configFile); err != nil {
-					log.Errorf("Error reloading config: %s", err)
+					level.Error(logger).Log("msg", "Error reloading config", "error", err)
 					rc <- err
 				} else {
 					rc <- nil
@@ -157,9 +163,10 @@ func main() {
             </html>`))
 	})
 
-	log.Infof("Listening on %s", *listenAddress)
+	level.Info(logger).Log("msg", "Listening on", "address", *listenAddress)
 	err := http.ListenAndServe(*listenAddress, nil)
 	if err != nil {
-		log.Fatal(err)
+		level.Error(logger).Log("msg", "HTTP listener stopped", "error", err)
+		os.Exit(1)
 	}
 }
