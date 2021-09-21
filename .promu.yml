@@ -1,7 +1,7 @@
 go:
     # Whenever the Go version is updated here,
     # .cirrus.yml should also be updated.
-    version: 1.13
+    version: 1.17
 
 repository:
     path: github.com/soundcloud/ipmi_exporter
