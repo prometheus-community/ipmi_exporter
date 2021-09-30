@@ -17,8 +17,8 @@ import (
 	"path"
 	"time"
 
+	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/common/log"
 
 	"github.com/prometheus-community/ipmi_exporter/freeipmi"
 )
@@ -81,7 +81,7 @@ func (c metaCollector) Collect(ch chan<- prometheus.Metric) {
 	start := time.Now()
 	defer func() {
 		duration := time.Since(start).Seconds()
-		log.Debugf("Scrape of target %s took %f seconds.", targetName(c.target), duration)
+		level.Debug(logger).Log("msg", "Scrape duration", "target", targetName(c.target), "duration", duration)
 		ch <- prometheus.MustNewConstMetric(
 			durationDesc,
 			prometheus.GaugeValue,
@@ -97,13 +97,13 @@ func (c metaCollector) Collect(ch chan<- prometheus.Metric) {
 
 	for _, collector := range config.GetCollectors() {
 		var up int
-		log.Debugf("Running collector: %s", collector.Name())
+		level.Debug(logger).Log("msg", "Running collector", "collector", collector.Name())
 
 		fqcmd := path.Join(*executablesPath, collector.Cmd())
 		args := collector.Args()
 		cfg := config.GetFreeipmiConfig()
 
-		result := freeipmi.Execute(fqcmd, args, cfg, target.host, log.Base())
+		result := freeipmi.Execute(fqcmd, args, cfg, target.host, logger)
 
 		up, _ = collector.Collect(result, ch, target)
 		markCollectorUp(ch, string(collector.Name()), up)

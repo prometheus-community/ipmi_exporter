@@ -27,6 +27,9 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 )
 
 var (
@@ -55,13 +58,6 @@ type SensorData struct {
 	Value float64
 	Unit  string
 	Event string
-}
-
-// Logger interface is used to enable logging in async functions that cannot return errors.
-// The main use case is using a prometheus.log logger, which satisfies this interface.
-type Logger interface {
-	Debugf(string, ...interface{})
-	Errorf(string, ...interface{})
 }
 
 // EscapePassword escapes a password so that the result is suitable for usage in a
@@ -101,7 +97,7 @@ func getValue(ipmiOutput []byte, regex *regexp.Regexp) (string, error) {
 	return "", fmt.Errorf("could not find value in output: %s", string(ipmiOutput))
 }
 
-func freeipmiConfigPipe(config string, logger Logger) (string, error) {
+func freeipmiConfigPipe(config string, logger log.Logger) (string, error) {
 	content := []byte(config)
 	pipe := pipeName()
 	err := syscall.Mkfifo(pipe, 0600)
@@ -112,24 +108,24 @@ func freeipmiConfigPipe(config string, logger Logger) (string, error) {
 	go func(file string, data []byte) {
 		f, err := os.OpenFile(file, os.O_WRONLY|os.O_CREATE|os.O_APPEND, os.ModeNamedPipe)
 		if err != nil {
-			logger.Errorf("Error opening pipe: %s", err)
+			level.Error(logger).Log("msg", "Error opening pipe", "error", err)
 		}
 		if _, err := f.Write(data); err != nil {
-			logger.Errorf("Error writing config to pipe: %s", err)
+			level.Error(logger).Log("msg", "Error writing config to pipe", "error", err)
 		}
 		f.Close()
 	}(pipe, content)
 	return pipe, nil
 }
 
-func Execute(cmd string, args []string, config string, target string, logger Logger) Result {
+func Execute(cmd string, args []string, config string, target string, logger log.Logger) Result {
 	pipe, err := freeipmiConfigPipe(config, logger)
 	if err != nil {
 		return Result{nil, err}
 	}
 	defer func() {
 		if err := os.Remove(pipe); err != nil {
-			logger.Errorf("Error deleting named pipe: %s", err)
+			level.Error(logger).Log("msg", "Error deleting named pipe", "error", err)
 		}
 	}()
 
@@ -140,7 +136,7 @@ func Execute(cmd string, args []string, config string, target string, logger Log
 		target = "[local]"
 	}
 
-	logger.Debugf("Executing %s %v", cmd, args)
+	level.Debug(logger).Log("msg", "Executing", "command", cmd, "args", args)
 	out, err := exec.Command(cmd, args...).CombinedOutput()
 	if err != nil {
 		err = fmt.Errorf("error running %s: %s", cmd, err)

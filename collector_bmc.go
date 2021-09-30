@@ -14,8 +14,8 @@
 package main
 
 import (
+	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/common/log"
 
 	"github.com/prometheus-community/ipmi_exporter/freeipmi"
 )
@@ -50,18 +50,18 @@ func (c BMCCollector) Args() []string {
 func (c BMCCollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	firmwareRevision, err := freeipmi.GetBMCInfoFirmwareRevision(result)
 	if err != nil {
-		log.Errorf("Failed to collect BMC data from %s: %s", targetName(target.host), err)
+		level.Error(logger).Log("msg", "Failed to collect BMC data", "target", targetName(target.host), "error", err)
 		return 0, err
 	}
 	manufacturerID, err := freeipmi.GetBMCInfoManufacturerID(result)
 	if err != nil {
-		log.Errorf("Failed to collect BMC data from %s: %s", targetName(target.host), err)
+		level.Error(logger).Log("msg", "Failed to collect BMC data", "target", targetName(target.host), "error", err)
 		return 0, err
 	}
 	systemFirmwareVersion, err := freeipmi.GetBMCInfoSystemFirmwareVersion(result)
 	if err != nil {
 		// This one is not always available.
-		log.Debugf("Failed to parse bmc-info data from %s: %s", targetName(target.host), err)
+		level.Debug(logger).Log("msg", "Failed to parse bmc-info data", "target", targetName(target.host), "error", err)
 		systemFirmwareVersion = "N/A"
 	}
 	ch <- prometheus.MustNewConstMetric(
