@@ -136,7 +136,7 @@ func Execute(cmd string, args []string, config string, target string, logger log
 		target = "[local]"
 	}
 
-	level.Debug(logger).Log("msg", "Executing", "command", cmd, "args", args)
+	level.Debug(logger).Log("msg", "Executing", "command", cmd, "args", fmt.Sprintf("%+v", args))
 	out, err := exec.Command(cmd, args...).CombinedOutput()
 	if err != nil {
 		err = fmt.Errorf("error running %s: %s", cmd, err)
