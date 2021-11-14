@@ -42,9 +42,16 @@ var (
 		nil,
 	)
 
-	fanSpeedDesc = prometheus.NewDesc(
+	fanSpeedRPMDesc = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "fan_speed", "rpm"),
 		"Fan speed in rotations per minute.",
+		[]string{"id", "name"},
+		nil,
+	)
+
+	fanSpeedRatioDesc = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "fan_speed", "ratio"),
+		"Fan speed as a proportion of the maximum speed.",
 		[]string{"id", "name"},
 		nil,
 	)
@@ -162,15 +169,22 @@ func (c IPMICollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metr
 
 		switch data.Unit {
 		case "RPM":
-			collectTypedSensor(ch, fanSpeedDesc, fanSpeedStateDesc, state, data)
+			collectTypedSensor(ch, fanSpeedRPMDesc, fanSpeedStateDesc, state, data, 1.0)
 		case "C":
-			collectTypedSensor(ch, temperatureDesc, temperatureStateDesc, state, data)
+			collectTypedSensor(ch, temperatureDesc, temperatureStateDesc, state, data, 1.0)
 		case "A":
-			collectTypedSensor(ch, currentDesc, currentStateDesc, state, data)
+			collectTypedSensor(ch, currentDesc, currentStateDesc, state, data, 1.0)
 		case "V":
-			collectTypedSensor(ch, voltageDesc, voltageStateDesc, state, data)
+			collectTypedSensor(ch, voltageDesc, voltageStateDesc, state, data, 1.0)
 		case "W":
-			collectTypedSensor(ch, powerDesc, powerStateDesc, state, data)
+			collectTypedSensor(ch, powerDesc, powerStateDesc, state, data, 1.0)
+		case "%":
+			switch data.Type {
+			case "Fan":
+				collectTypedSensor(ch, fanSpeedRatioDesc, fanSpeedStateDesc, state, data, 0.01)
+			default:
+				collectGenericSensor(ch, state, data)
+			}
 		default:
 			collectGenericSensor(ch, state, data)
 		}
@@ -181,7 +195,8 @@ func (c IPMICollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metr
 func (c IPMICollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- sensorStateDesc
 	ch <- sensorValueDesc
-	ch <- fanSpeedDesc
+	ch <- fanSpeedRPMDesc
+	ch <- fanSpeedRatioDesc
 	ch <- fanSpeedStateDesc
 	ch <- temperatureDesc
 	ch <- temperatureStateDesc
@@ -193,11 +208,11 @@ func (c IPMICollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- powerStateDesc
 }
 
-func collectTypedSensor(ch chan<- prometheus.Metric, desc, stateDesc *prometheus.Desc, state float64, data freeipmi.SensorData) {
+func collectTypedSensor(ch chan<- prometheus.Metric, desc, stateDesc *prometheus.Desc, state float64, data freeipmi.SensorData, scale float64) {
 	ch <- prometheus.MustNewConstMetric(
 		desc,
 		prometheus.GaugeValue,
-		data.Value,
+		data.Value*scale,
 		strconv.FormatInt(data.ID, 10),
 		data.Name,
 	)
