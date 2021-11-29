@@ -15,7 +15,7 @@
 .PHONY: all
 all: precheck style unused build test
 
-DOCKER_ARCHS      ?= amd64
+DOCKER_ARCHS      ?= amd64 arm64
 DOCKER_IMAGE_NAME ?= ipmi-exporter
 DOCKER_REPO       ?= prometheuscommunity
 
