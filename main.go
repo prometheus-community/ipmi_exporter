@@ -135,7 +135,7 @@ func main() {
 	http.HandleFunc("/-/reload", updateConfiguration) // Endpoint to reload configuration.
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`<html>
+		_, _ = w.Write([]byte(`<html>
             <head>
             <title>IPMI Exporter</title>
             <style>
