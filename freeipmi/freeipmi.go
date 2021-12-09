@@ -138,8 +138,6 @@ func Execute(cmd string, args []string, config string, target string, logger log
 	args = append(args, "--config-file", pipe)
 	if target != "" {
 		args = append(args, "-h", target)
-	} else {
-		target = "[local]"
 	}
 
 	_ = level.Debug(logger).Log("msg", "Executing", "command", cmd, "args", fmt.Sprintf("%+v", args))
