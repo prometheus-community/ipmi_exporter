@@ -126,10 +126,6 @@ type IPMIConfig struct {
 	XXX map[string]interface{} `yaml:",inline"`
 }
 
-type Args struct {
-	Args map[string][]string
-}
-
 var defaultConfig = IPMIConfig{
 	Collectors: []CollectorName{IPMICollectorName, DCMICollectorName, BMCCollectorName, ChassisCollectorName},
 }
