@@ -66,10 +66,13 @@ func EscapePassword(password string) string {
 	return strings.Replace(password, "#", "\\#", -1)
 }
 
-func pipeName() string {
+func pipeName() (string, error) {
 	randBytes := make([]byte, 16)
-	rand.Read(randBytes)
-	return filepath.Join(os.TempDir(), "ipmi_exporter-"+hex.EncodeToString(randBytes))
+	_, err := rand.Read(randBytes)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(os.TempDir(), "ipmi_exporter-"+hex.EncodeToString(randBytes)), nil
 }
 
 func contains(s []int64, elm int64) bool {
@@ -99,8 +102,11 @@ func getValue(ipmiOutput []byte, regex *regexp.Regexp) (string, error) {
 
 func freeipmiConfigPipe(config string, logger log.Logger) (string, error) {
 	content := []byte(config)
-	pipe := pipeName()
-	err := syscall.Mkfifo(pipe, 0600)
+	pipe, err := pipeName()
+	if err != nil {
+		return "", err
+	}
+	err = syscall.Mkfifo(pipe, 0600)
 	if err != nil {
 		return "", err
 	}
