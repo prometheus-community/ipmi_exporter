@@ -114,10 +114,10 @@ func freeipmiConfigPipe(config string, logger log.Logger) (string, error) {
 	go func(file string, data []byte) {
 		f, err := os.OpenFile(file, os.O_WRONLY|os.O_CREATE|os.O_APPEND, os.ModeNamedPipe)
 		if err != nil {
-			level.Error(logger).Log("msg", "Error opening pipe", "error", err)
+			_ = level.Error(logger).Log("msg", "Error opening pipe", "error", err)
 		}
 		if _, err := f.Write(data); err != nil {
-			level.Error(logger).Log("msg", "Error writing config to pipe", "error", err)
+			_ = level.Error(logger).Log("msg", "Error writing config to pipe", "error", err)
 		}
 		f.Close()
 	}(pipe, content)
@@ -131,7 +131,7 @@ func Execute(cmd string, args []string, config string, target string, logger log
 	}
 	defer func() {
 		if err := os.Remove(pipe); err != nil {
-			level.Error(logger).Log("msg", "Error deleting named pipe", "error", err)
+			_ = level.Error(logger).Log("msg", "Error deleting named pipe", "error", err)
 		}
 	}()
 
@@ -142,7 +142,7 @@ func Execute(cmd string, args []string, config string, target string, logger log
 		target = "[local]"
 	}
 
-	level.Debug(logger).Log("msg", "Executing", "command", cmd, "args", fmt.Sprintf("%+v", args))
+	_ = level.Debug(logger).Log("msg", "Executing", "command", cmd, "args", fmt.Sprintf("%+v", args))
 	out, err := exec.Command(cmd, args...).CombinedOutput()
 	if err != nil {
 		err = fmt.Errorf("error running %s: %s", cmd, err)

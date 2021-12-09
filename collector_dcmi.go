@@ -50,7 +50,7 @@ func (c DCMICollector) Args() []string {
 func (c DCMICollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	currentPowerConsumption, err := freeipmi.GetCurrentPowerConsumption(result)
 	if err != nil {
-		level.Error(logger).Log("msg", "Failed to collect DCMI data", "target", targetName(target.host), "error", err)
+		_ = level.Error(logger).Log("msg", "Failed to collect DCMI data", "target", targetName(target.host), "error", err)
 		return 0, err
 	}
 	ch <- prometheus.MustNewConstMetric(

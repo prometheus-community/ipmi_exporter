@@ -69,7 +69,7 @@ func remoteIPMIHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	level.Debug(logger).Log("msg", "Scraping target", "target", target, "module", module)
+	_ = level.Debug(logger).Log("msg", "Scraping target", "target", target, "module", module)
 
 	registry := prometheus.NewRegistry()
 	remoteCollector := metaCollector{target: target, module: module, config: sc}
@@ -87,7 +87,7 @@ func updateConfiguration(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, fmt.Sprintf("failed to reload config: %s", err), http.StatusInternalServerError)
 		}
 	default:
-		level.Error(logger).Log("msg", "Only POST requests allowed", "url", r.URL)
+		_ = level.Error(logger).Log("msg", "Only POST requests allowed", "url", r.URL)
 		w.Header().Set("Allow", "POST")
 		http.Error(w, "Only POST requests allowed", http.StatusMethodNotAllowed)
 	}
@@ -98,11 +98,11 @@ func main() {
 	kingpin.HelpFlag.Short('h')
 	kingpin.Version(version.Print("ipmi_exporter"))
 	kingpin.Parse()
-	level.Info(logger).Log("msg", "Starting ipmi_exporter", "version", version.Info())
+	_ = level.Info(logger).Log("msg", "Starting ipmi_exporter", "version", version.Info())
 
 	// Bail early if the config is bad.
 	if err := sc.ReloadConfig(*configFile); err != nil {
-		level.Error(logger).Log("msg", "Error parsing config file", "error", err)
+		_ = level.Error(logger).Log("msg", "Error parsing config file", "error", err)
 		os.Exit(1)
 	}
 
@@ -114,11 +114,11 @@ func main() {
 			select {
 			case <-hup:
 				if err := sc.ReloadConfig(*configFile); err != nil {
-					level.Error(logger).Log("msg", "Error reloading config", "error", err)
+					_ = level.Error(logger).Log("msg", "Error reloading config", "error", err)
 				}
 			case rc := <-reloadCh:
 				if err := sc.ReloadConfig(*configFile); err != nil {
-					level.Error(logger).Log("msg", "Error reloading config", "error", err)
+					_ = level.Error(logger).Log("msg", "Error reloading config", "error", err)
 					rc <- err
 				} else {
 					rc <- nil
@@ -163,10 +163,10 @@ func main() {
             </html>`))
 	})
 
-	level.Info(logger).Log("msg", "Listening on", "address", *listenAddress)
+	_ = level.Info(logger).Log("msg", "Listening on", "address", *listenAddress)
 	err := http.ListenAndServe(*listenAddress, nil)
 	if err != nil {
-		level.Error(logger).Log("msg", "HTTP listener stopped", "error", err)
+		_ = level.Error(logger).Log("msg", "HTTP listener stopped", "error", err)
 		os.Exit(1)
 	}
 }
