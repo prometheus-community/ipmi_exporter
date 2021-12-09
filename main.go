@@ -106,7 +106,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	hup := make(chan os.Signal)
+	hup := make(chan os.Signal, 1)
 	reloadCh = make(chan chan error)
 	signal.Notify(hup, syscall.SIGHUP)
 	go func() {
