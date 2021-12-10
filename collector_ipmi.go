@@ -14,6 +14,7 @@
 package main
 
 import (
+	"fmt"
 	"math"
 	"strconv"
 
@@ -158,7 +159,7 @@ func (c IPMICollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metr
 			state = math.NaN()
 		}
 
-		level.Debug(logger).Log("msg", "Got values", "data", data)
+		level.Debug(logger).Log("msg", "Got values", "data", fmt.Sprintf("%+v", data))
 
 		switch data.Unit {
 		case "RPM":
