@@ -20,6 +20,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -48,8 +49,7 @@ var (
 	}
 	reloadCh chan chan error
 
-	promlogConfig = &promlog.Config{}
-	logger        = promlog.New(promlogConfig)
+	logger log.Logger
 )
 
 func remoteIPMIHandler(w http.ResponseWriter, r *http.Request) {
@@ -94,10 +94,12 @@ func updateConfiguration(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	promlogConfig := &promlog.Config{}
 	flag.AddFlags(kingpin.CommandLine, promlogConfig)
 	kingpin.HelpFlag.Short('h')
 	kingpin.Version(version.Print("ipmi_exporter"))
 	kingpin.Parse()
+	logger = promlog.New(promlogConfig)
 	_ = level.Info(logger).Log("msg", "Starting ipmi_exporter", "version", version.Info())
 
 	// Bail early if the config is bad.
