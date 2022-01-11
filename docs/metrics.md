@@ -111,13 +111,19 @@ sensor ID and the sensor name as labels. Example:
 
 ### Fan speed sensors
 
-Fan speed sensors measure fan speed in rotations per minute (RPM) and their
-state usually reflects the speed being to low, indicating the fan might be
-broken. For each fan speed sensor, two metrics are exported (state and value),
-using the sensor ID and the sensor name as labels. Example:
+Fan speed sensors measure fan speed in rotations per minute (RPM) or as a
+percentage of the maximum speed, and their state usually reflects the speed
+being to low, indicating the fan might be broken. For each fan speed sensor,
+two metrics are exported (state and value), using the sensor ID and the
+sensor name as labels. Example:
 
     ipmi_fan_speed_rpm{id="12",name="Fan1A"} 4560
     ipmi_fan_speed_state{id="12",name="Fan1A"} 0
+
+or, for a percentage based fan:
+
+    ipmi_fan_speed_ratio{id="58",name="Fan 1 DutyCycle"} 0.2195
+    ipmi_fan_speed_state{id="58",name="Fan 1 DutyCycle"} 0
 
 ### Voltage sensors
 
