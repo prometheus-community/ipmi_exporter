@@ -20,5 +20,3 @@ DOCKER_IMAGE_NAME ?= ipmi-exporter
 DOCKER_REPO       ?= prometheuscommunity
 
 include Makefile.common
-
-docker: common-docker
