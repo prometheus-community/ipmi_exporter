@@ -1,6 +1,6 @@
 go:
     # Whenever the Go version is updated here,
-    # .cirrus.yml should also be updated.
+    # .circleci/config.yml should also be updated.
     version: 1.17
 
 repository:
