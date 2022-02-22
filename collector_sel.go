@@ -57,12 +57,12 @@ func (c SELCollector) Args() []string {
 func (c SELCollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	entriesCount, err := freeipmi.GetSELInfoEntriesCount(result)
 	if err != nil {
-		_ = level.Error(logger).Log("msg", "Failed to collect SEL data", "target", targetName(target.host), "error", err)
+		level.Error(logger).Log("msg", "Failed to collect SEL data", "target", targetName(target.host), "error", err)
 		return 0, err
 	}
 	freeSpace, err := freeipmi.GetSELInfoFreeSpace(result)
 	if err != nil {
-		_ = level.Error(logger).Log("msg", "Failed to collect SEL data", "target", targetName(target.host), "error", err)
+		level.Error(logger).Log("msg", "Failed to collect SEL data", "target", targetName(target.host), "error", err)
 		return 0, err
 	}
 	ch <- prometheus.MustNewConstMetric(

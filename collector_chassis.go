@@ -50,7 +50,7 @@ func (c ChassisCollector) Args() []string {
 func (c ChassisCollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	currentChassisPowerState, err := freeipmi.GetChassisPowerState(result)
 	if err != nil {
-		_ = level.Error(logger).Log("msg", "Failed to collect chassis data", "target", targetName(target.host), "error", err)
+		level.Error(logger).Log("msg", "Failed to collect chassis data", "target", targetName(target.host), "error", err)
 		return 0, err
 	}
 	ch <- prometheus.MustNewConstMetric(
