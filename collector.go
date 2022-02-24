@@ -81,7 +81,7 @@ func (c metaCollector) Collect(ch chan<- prometheus.Metric) {
 	start := time.Now()
 	defer func() {
 		duration := time.Since(start).Seconds()
-		_ = level.Debug(logger).Log("msg", "Scrape duration", "target", targetName(c.target), "duration", duration)
+		level.Debug(logger).Log("msg", "Scrape duration", "target", targetName(c.target), "duration", duration)
 		ch <- prometheus.MustNewConstMetric(
 			durationDesc,
 			prometheus.GaugeValue,
@@ -97,7 +97,7 @@ func (c metaCollector) Collect(ch chan<- prometheus.Metric) {
 
 	for _, collector := range config.GetCollectors() {
 		var up int
-		_ = level.Debug(logger).Log("msg", "Running collector", "target", target.host, "collector", collector.Name())
+		level.Debug(logger).Log("msg", "Running collector", "target", target.host, "collector", collector.Name())
 
 		fqcmd := path.Join(*executablesPath, collector.Cmd())
 		args := collector.Args()
