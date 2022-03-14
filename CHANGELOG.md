@@ -1,3 +1,8 @@
+## 1.5.2 / 2022-03-14
+
+* Base docker images on debian/bullseye-slim
+* Update common files
+
 ## 1.5.1 / 2022-02-21
 
 * Bugfix release for the release process itself :)
