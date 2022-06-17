@@ -1,3 +1,12 @@
+## 1.6.1 / 2022-06-17
+
+* Another "I screwed up the release" release
+
+## 1.6.0 / 2022-06-17
+
+* Many improvements in underlying Prometheus libraries
+* Make sure `ipmimonitoring` outputs the sensor state
+
 ## 1.5.2 / 2022-03-14
 
 * Base docker images on debian/bullseye-slim
