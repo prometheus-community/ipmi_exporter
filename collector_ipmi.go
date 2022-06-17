@@ -139,6 +139,7 @@ func (c IPMICollector) Args() []string {
 		"--no-header-output",
 		"--sdr-cache-recreate",
 		"--output-event-bitmask",
+		"--output-sensor-state",
 	}
 }
 
