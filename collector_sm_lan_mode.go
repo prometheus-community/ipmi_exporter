@@ -58,7 +58,7 @@ func (c SMLANModeCollector) Collect(result freeipmi.Result, ch chan<- prometheus
 	}
 	if len(octets) != 3 {
 		level.Error(logger).Log("msg", "Unexpected number of octets", "target", targetName(target.host), "octets", octets)
-		return 0, fmt.Errorf("unexpected number of octects in raw response: %d", len(octets))
+		return 0, fmt.Errorf("unexpected number of octets in raw response: %d", len(octets))
 	}
 
 	switch octets[2] {

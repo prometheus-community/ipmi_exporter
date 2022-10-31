@@ -284,6 +284,6 @@ func GetRawOctets(ipmiOutput Result) ([]string, error) {
 	if !strings.HasPrefix(strOutput, "rcvd: ") {
 		return nil, fmt.Errorf("unexpected raw response: %s", strOutput)
 	}
-	octects := strings.Split(strOutput[6:], " ")
-	return octects, nil
+	octets := strings.Split(strOutput[6:], " ")
+	return octets, nil
 }
