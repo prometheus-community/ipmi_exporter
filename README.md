@@ -45,6 +45,29 @@ You can build a Docker container with the included `docker` make target:
 This will not even require Go tooling on the host. See the included [docker
 compose example](docker-compose.yml) for how to use the resulting container.
 
+### Building RPM Package
+
+The RPM package build targets to run the exporter locally with sudo permissions to expose most metrics.
+
+#### Directly on CentOS with rpmbuild
+
+Build script is located in `rpm/build.sh`.
+
+The RPM package will be available under `$HOME/rpmbuild/`.
+
+#### Docker Build Container
+
+The build container uses CentOS7.
+
+```bash
+# from repo base dir run
+
+sudo docker build -t rpm_dock -f docker/RPM-Dockerfile .
+sudo docker run -v $PWD:/rpm -it rpm_dock
+```
+
+The RPM package will be available under `build/`.
+
 ## Running
 
 A minimal invocation looks like this:
