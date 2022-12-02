@@ -7,9 +7,8 @@ RUN tar -C /usr/local -xvzf go1.18.1.linux-amd64.tar.gz
 ENV PATH=$PATH:/usr/local/go/bin
 COPY . /go/ipmi_exporter
 WORKDIR /go/ipmi_exporter
-RUN rpm/build.sh
-RUN mkdir /rpm
+RUN contrib/rpm/build.sh
+RUN mkdir /outdir
 ENTRYPOINT ["/bin/sh"]
 ENTRYPOINT ["cp"]
-CMD ["-r","/root/rpmbuild/RPMS/x86_64/","/rpm/build"]
-
+CMD ["-r", "/root/rpmbuild/RPMS/x86_64/", "/outdir"]
