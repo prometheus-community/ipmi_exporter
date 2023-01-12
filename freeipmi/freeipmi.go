@@ -35,6 +35,8 @@ import (
 var (
 	ipmiDCMICurrentPowerRegex         = regexp.MustCompile(`^Current Power\s*:\s*(?P<value>[0-9.]*)\s*Watts.*`)
 	ipmiChassisPowerRegex             = regexp.MustCompile(`^System Power\s*:\s(?P<value>.*)`)
+	ipmiChassisDriveFaultRegex        = regexp.MustCompile(`^Drive Fault\s*:\s(?P<value>.*)`)
+	ipmiChassisCoolingFaultRegex      = regexp.MustCompile(`^Cooling/fan fault\s*:\s(?P<value>.*)`)
 	ipmiSELEntriesRegex               = regexp.MustCompile(`^Number of log entries\s*:\s(?P<value>[0-9.]*)`)
 	ipmiSELFreeSpaceRegex             = regexp.MustCompile(`^Free space remaining\s*:\s(?P<value>[0-9.]*)\s*bytes.*`)
 	bmcInfoFirmwareRevisionRegex      = regexp.MustCompile(`^Firmware Revision\s*:\s*(?P<value>[0-9.]*).*`)
@@ -214,6 +216,34 @@ func GetChassisPowerState(ipmiOutput Result) (float64, error) {
 		return -1, err
 	}
 	if value == "on" {
+		return 1, err
+	}
+	return 0, err
+}
+
+func GetChassisDriveFault(ipmiOutput Result) (float64, error) {
+	if ipmiOutput.err != nil {
+		return -1, fmt.Errorf("%s: %s", ipmiOutput.err, ipmiOutput.output)
+	}
+	value, err := getValue(ipmiOutput.output, ipmiChassisDriveFaultRegex)
+	if err != nil {
+		return -1, err
+	}
+	if value == "false" {
+		return 1, err
+	}
+	return 0, err
+}
+
+func GetChassisCoolingFault(ipmiOutput Result) (float64, error) {
+	if ipmiOutput.err != nil {
+		return -1, fmt.Errorf("%s: %s", ipmiOutput.err, ipmiOutput.output)
+	}
+	value, err := getValue(ipmiOutput.output, ipmiChassisCoolingFaultRegex)
+	if err != nil {
+		return -1, err
+	}
+	if value == "false" {
 		return 1, err
 	}
 	return 0, err
