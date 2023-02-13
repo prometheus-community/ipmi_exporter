@@ -45,6 +45,10 @@ You can build a Docker container with the included `docker` make target:
 This will not even require Go tooling on the host. See the included [docker
 compose example](docker-compose.yml) for how to use the resulting container.
 
+### Building a RPM Package
+
+See [how to build a RPM package](contrib/rpm/README.md).
+
 ## Running
 
 A minimal invocation looks like this:
