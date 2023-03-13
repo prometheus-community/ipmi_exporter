@@ -31,6 +31,18 @@ var (
 		[]string{},
 		nil,
 	)
+	chassisDriveFaultDesc = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "chassis", "drive_fault_state"),
+		"Current drive fault state (1=false, 0=true).",
+		[]string{},
+		nil,
+	)
+	chassisCoolingFaultDesc = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "chassis", "cooling_fault_state"),
+		"Current Cooling/fan fault state (1=false, 0=true).",
+		[]string{},
+		nil,
+	)
 )
 
 type ChassisCollector struct{}
@@ -49,6 +61,8 @@ func (c ChassisCollector) Args() []string {
 
 func (c ChassisCollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	currentChassisPowerState, err := freeipmi.GetChassisPowerState(result)
+	currentChassisDriveFault, err := freeipmi.GetChassisDriveFault(result)
+	currentChassisCoolingFault, err := freeipmi.GetChassisCoolingFault(result)
 	if err != nil {
 		level.Error(logger).Log("msg", "Failed to collect chassis data", "target", targetName(target.host), "error", err)
 		return 0, err
@@ -57,6 +71,16 @@ func (c ChassisCollector) Collect(result freeipmi.Result, ch chan<- prometheus.M
 		chassisPowerStateDesc,
 		prometheus.GaugeValue,
 		currentChassisPowerState,
+	)
+	ch <- prometheus.MustNewConstMetric(
+		chassisDriveFaultDesc,
+		prometheus.GaugeValue,
+		currentChassisDriveFault,
+	)
+	ch <- prometheus.MustNewConstMetric(
+		chassisCoolingFaultDesc,
+		prometheus.GaugeValue,
+		currentChassisCoolingFault,
 	)
 	return 1, nil
 }
