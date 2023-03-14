@@ -3,7 +3,7 @@ services:
   ipmi_exporter:
     build:
       context: .
-    command: /bin/ipmi_exporter --config.file /config.yml
+    command: --config.file /config.yml
     volumes:
       - ./ipmi_remote.yml:/config.yml:ro    # replace with your own config
     ports:
