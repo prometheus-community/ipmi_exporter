@@ -53,10 +53,13 @@ func (c DCMICollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metr
 		level.Error(logger).Log("msg", "Failed to collect DCMI data", "target", targetName(target.host), "error", err)
 		return 0, err
 	}
-	ch <- prometheus.MustNewConstMetric(
-		powerConsumptionDesc,
-		prometheus.GaugeValue,
-		currentPowerConsumption,
-	)
+	// Returned value negative == Power Measurement is not avail
+	if currentPowerConsumption > -1 {
+		ch <- prometheus.MustNewConstMetric(
+			powerConsumptionDesc,
+			prometheus.GaugeValue,
+			currentPowerConsumption,
+		)
+	}
 	return 1, nil
 }

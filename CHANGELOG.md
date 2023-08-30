@@ -1,3 +1,8 @@
+## next
+
+* Now, `ipmi_dcmi_power_consumption_watts` metric is not present if Power
+Measurement feature is not present. Before this change - the value was zero
+
 ## 1.6.1 / 2022-06-17
 
 * Another "I screwed up the release" release

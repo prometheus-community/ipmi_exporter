@@ -33,6 +33,7 @@ import (
 )
 
 var (
+	ipmiDCMIPowerMeasurementRegex     = regexp.MustCompile(`^Power Measurement\s*:\s*(?P<value>Active|Not\sAvailable).*`)
 	ipmiDCMICurrentPowerRegex         = regexp.MustCompile(`^Current Power\s*:\s*(?P<value>[0-9.]*)\s*Watts.*`)
 	ipmiChassisPowerRegex             = regexp.MustCompile(`^System Power\s*:\s(?P<value>.*)`)
 	ipmiChassisDriveFaultRegex        = regexp.MustCompile(`^Drive Fault\s*:\s(?P<value>.*)`)
@@ -200,11 +201,20 @@ func GetCurrentPowerConsumption(ipmiOutput Result) (float64, error) {
 	if ipmiOutput.err != nil {
 		return -1, fmt.Errorf("%s: %s", ipmiOutput.err, ipmiOutput.output)
 	}
-	value, err := getValue(ipmiOutput.output, ipmiDCMICurrentPowerRegex)
+	// Check for Power Measurement are avail
+	value, err := getValue(ipmiOutput.output, ipmiDCMIPowerMeasurementRegex)
 	if err != nil {
 		return -1, err
 	}
-	return strconv.ParseFloat(value, 64)
+	// When Power Measurement in 'Active' state - we can get watts
+	if value == "Active" {
+		value, err := getValue(ipmiOutput.output, ipmiDCMICurrentPowerRegex)
+		if err != nil {
+			return -1, err
+		}
+		return strconv.ParseFloat(value, 64)
+	}
+	return -1, nil
 }
 
 func GetChassisPowerState(ipmiOutput Result) (float64, error) {

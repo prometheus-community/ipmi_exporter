@@ -41,7 +41,7 @@ case it will be exported as `"N/A"`.
 This metric is only provided if the `chassis` collector is enabled.
 
 The metric `ipmi_chassis_power_state` shows the current chassis power state of
-the machine.  The value is 1 for power on, and 0 otherwise.
+the machine. The value is 1 for power on, and 0 otherwise.
 
 ## Power consumption
 
@@ -159,7 +159,7 @@ explicit [power consumption metrics](#power_consumption) for this.
 ### Generic sensors
 
 For all sensors that can not be classified, two generic metrics are exported,
-the state and the value.  However, to provide a little more context, the sensor
+the state and the value. However, to provide a little more context, the sensor
 type is added as label (in addition to name and ID). Example:
 
     ipmi_sensor_state{id="139",name="Power Cable",type="Cable/Interconnect"} 0
