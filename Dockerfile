@@ -1,8 +1,7 @@
 ARG ARCH="amd64"
 ARG OS="linux"
-FROM debian:bullseye-slim
-#FROM quay.io/prometheus/busybox-${OS}-${ARCH}:latest
-RUN apt-get update && apt-get install -y freeipmi
+FROM alpine:3
+RUN apk --no-cache add freeipmi
 LABEL maintainer="The Prometheus Authors <prometheus-developers@googlegroups.com>"
 
 ARG ARCH="amd64"
