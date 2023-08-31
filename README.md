@@ -39,7 +39,7 @@ executable in `$GOPATH/bin`:
 You can build a Docker container with the included `docker` make target:
 
     make promu
-    promu crossbuild -p linux/amd64 -p linux/arm64
+    promu crossbuild -p linux/amd64
     make docker
 
 This will not even require Go tooling on the host. See the included [docker
