@@ -14,6 +14,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -62,17 +64,26 @@ func (c ChassisCollector) Args() []string {
 func (c ChassisCollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	currentChassisPowerState, err := freeipmi.GetChassisPowerState(result)
 	if err != nil {
-		level.Error(logger).Log("msg", "Failed to collect chassis data", "target", targetName(target.host), "error", err)
+		e := level.Error(logger).Log("msg", "Failed to collect chassis data", "target", targetName(target.host), "error", err)
+		if e != nil {
+			fmt.Println(e)
+		}
 		return 0, err
 	}
 	currentChassisDriveFault, err := freeipmi.GetChassisDriveFault(result)
 	if err != nil {
-		level.Error(logger).Log("msg", "Failed to collect chassis data", "target", targetName(target.host), "error", err)
+		e := level.Error(logger).Log("msg", "Failed to collect chassis data", "target", targetName(target.host), "error", err)
+		if e != nil {
+			fmt.Println(e)
+		}
 		return 0, err
 	}
 	currentChassisCoolingFault, err := freeipmi.GetChassisCoolingFault(result)
 	if err != nil {
-		level.Error(logger).Log("msg", "Failed to collect chassis data", "target", targetName(target.host), "error", err)
+		e := level.Error(logger).Log("msg", "Failed to collect chassis data", "target", targetName(target.host), "error", err)
+		if e != nil {
+			fmt.Println(e)
+		}
 		return 0, err
 	}
 	ch <- prometheus.MustNewConstMetric(

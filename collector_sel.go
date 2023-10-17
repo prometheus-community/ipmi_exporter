@@ -14,6 +14,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -57,12 +59,18 @@ func (c SELCollector) Args() []string {
 func (c SELCollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	entriesCount, err := freeipmi.GetSELInfoEntriesCount(result)
 	if err != nil {
-		level.Error(logger).Log("msg", "Failed to collect SEL data", "target", targetName(target.host), "error", err)
+		e := level.Error(logger).Log("msg", "Failed to collect SEL data", "target", targetName(target.host), "error", err)
+		if e != nil {
+			fmt.Println(e)
+		}
 		return 0, err
 	}
 	freeSpace, err := freeipmi.GetSELInfoFreeSpace(result)
 	if err != nil {
-		level.Error(logger).Log("msg", "Failed to collect SEL data", "target", targetName(target.host), "error", err)
+		e := level.Error(logger).Log("msg", "Failed to collect SEL data", "target", targetName(target.host), "error", err)
+		if e != nil {
+			fmt.Println(e)
+		}
 		return 0, err
 	}
 	ch <- prometheus.MustNewConstMetric(

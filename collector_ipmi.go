@@ -148,7 +148,10 @@ func (c IPMICollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metr
 	targetHost := targetName(target.host)
 	results, err := freeipmi.GetSensorData(result, excludeIds)
 	if err != nil {
-		level.Error(logger).Log("msg", "Failed to collect sensor data", "target", targetHost, "error", err)
+		e := level.Error(logger).Log("msg", "Failed to collect sensor data", "target", targetHost, "error", err)
+		if e != nil {
+			fmt.Println(e)
+		}
 		return 0, err
 	}
 	for _, data := range results {
@@ -164,11 +167,17 @@ func (c IPMICollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metr
 		case "N/A":
 			state = math.NaN()
 		default:
-			level.Error(logger).Log("msg", "Unknown sensor state", "target", targetHost, "state", data.State)
+			e := level.Error(logger).Log("msg", "Unknown sensor state", "target", targetHost, "state", data.State)
+			if e != nil {
+				fmt.Println(e)
+			}
 			state = math.NaN()
 		}
 
-		level.Debug(logger).Log("msg", "Got values", "target", targetHost, "data", fmt.Sprintf("%+v", data))
+		e := level.Debug(logger).Log("msg", "Got values", "target", targetHost, "data", fmt.Sprintf("%+v", data))
+		if e != nil {
+			fmt.Println(e)
+		}
 
 		switch data.Unit {
 		case "RPM":
