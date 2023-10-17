@@ -19,6 +19,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	kingpin "github.com/alecthomas/kingpin/v2"
 	"github.com/go-kit/log"
@@ -165,7 +166,9 @@ func main() {
             </html>`))
 	})
 
-	srv := &http.Server{}
+	srv := &http.Server{
+		ReadHeaderTimeout: 2 * time.Second, // Fix CWE-400 Potential Slowloris Attack because ReadHeaderTimeout is not configured in the http.Server
+	}
 	if err := web.ListenAndServe(srv, webConfig, logger); err != nil {
 		level.Error(logger).Log("msg", "HTTP listener stopped", "error", err)
 		os.Exit(1)
