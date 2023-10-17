@@ -30,3 +30,16 @@ jobs:
         uses: golangci/golangci-lint-action@v3.4.0
         with:
           version: v1.53.3
+
+  gosec:
+    name: gosec
+    runs-on: ubuntu-latest
+    env:
+      GO111MODULE: on
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v3
+      - name: Run Gosec Security Scanner
+        uses: securego/gosec@master
+        with:
+          args: ./...
