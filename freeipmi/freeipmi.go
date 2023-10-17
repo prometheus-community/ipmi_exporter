@@ -115,7 +115,7 @@ func freeipmiConfigPipe(config string, logger log.Logger) (string, error) {
 	}
 
 	go func(file string, data []byte) {
-		f, err := os.OpenFile(file, os.O_WRONLY|os.O_CREATE|os.O_APPEND, os.ModeNamedPipe)
+		f, err := os.OpenFile(filepath.Clean(file), os.O_WRONLY|os.O_CREATE|os.O_APPEND, os.ModeNamedPipe)
 		if err != nil {
 			level.Error(logger).Log("msg", "Error opening pipe", "error", err)
 		}

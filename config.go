@@ -16,6 +16,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -222,7 +223,7 @@ func (sc *SafeConfig) ReloadConfig(configFile string) error {
 	var err error
 
 	if configFile != "" {
-		config, err = ioutil.ReadFile(configFile)
+		config, err = ioutil.ReadFile(filepath.Clean(configFile))
 		if err != nil {
 			level.Error(logger).Log("msg", "Error reading config file", "error", err)
 			return err
