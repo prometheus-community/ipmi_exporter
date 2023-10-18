@@ -1,5 +1,14 @@
 ## next
 
+## 1.7.0 / 2023-10-18
+
+* Update common files
+* Update build
+* Update golang to 1.21
+* Update dependecies
+* Switch to Alpine-based Docker image
+* Add missing error handling
+* Added chassis cooling fault and drive fault metrics
 * Now, `ipmi_dcmi_power_consumption_watts` metric is not present if Power
 Measurement feature is not present. Before this change - the value was zero
 
