@@ -13,6 +13,8 @@ These metrics provide data about the scrape itself:
      power consumption metrics (see below) will not be available
    - `bmc`: collects BMC details. If it fails, BMC info metrics (see below)
      will not be available
+   - `bmc-watchdog`: collects status of the watchdog. If it fails, BMC watchdog
+     metrics (see below) will not be available
    - `chassis`: collects the current chassis power state (on/off). If it fails,
      the chassis power state metric (see below) will not be available
    - `sel`: collects system event log (SEL) details. If it fails, SEL metrics
@@ -35,6 +37,56 @@ version). Example:
 
 **Note:** some systems do not expose the system's firmware version, in which
 case it will be exported as `"N/A"`.
+
+## BMC Watchdog
+
+These metrics are only provided if the `bmc-watchdog` collector is enabled.
+
+The metric `ipmi_bmc_watchdog_timer_state` shows whether the watchdog timer is
+currently running (1) or stopped (0).
+
+The metric `ipmi_bmc_watchdog_timer_use_state` shows which timer use is
+currently active. Per freeipmi bmc-watchdog manual there are 5 uses. This metric
+will return 1 for only one of those and 0 for the rest.
+
+    ipmi_bmc_watchdog_timer_use_state{name="BIOS FRB2"} 1
+    ipmi_bmc_watchdog_timer_use_state{name="BIOS POST"} 0
+    ipmi_bmc_watchdog_timer_use_state{name="OEM"} 0
+    ipmi_bmc_watchdog_timer_use_state{name="OS LOAD"} 0
+    ipmi_bmc_watchdog_timer_use_state{name="SMS/OS"} 0
+
+The metric `ipmi_bmc_watchdog_logging_state` shows whether the watchdog logging
+is enabled (1) or not (0). (Note: This is reversed in freeipmi where 0 enables
+logging and 1 disables it)
+
+The metric `ipmi_bmc_watchdog_timeout_action_state` shows whether watchdog will
+take an action on timeout, and if so which one. Per freeipmi bmc-watchdog manual
+there are 3 actions. If no action is configured it will be reported as `None`.
+
+    ipmi_bmc_watchdog_timeout_action_state{action="Hard Reset"} 0
+    ipmi_bmc_watchdog_timeout_action_state{action="None"} 0
+    ipmi_bmc_watchdog_timeout_action_state{action="Power Cycle"} 1
+    ipmi_bmc_watchdog_timeout_action_state{action="Power Down"} 0
+
+The metric `ipmi_bmc_watchdog_timeout_action_state` shows whether a pre-timeout
+interrupt is currently active and if so, which one. Per freeipmi bmc-watchdog
+manual there are 3 interrupts. If no interrupt is configured it will be reported
+as `None`.
+
+    ipmi_bmc_watchdog_pretimeout_interrupt_state{interrupt="Messaging Interrupt"} 0
+    ipmi_bmc_watchdog_pretimeout_interrupt_state{interrupt="NMI / Diagnostic Interrupt"} 0
+    ipmi_bmc_watchdog_pretimeout_interrupt_state{interrupt="None"} 1
+    ipmi_bmc_watchdog_pretimeout_interrupt_state{interrupt="SMI"} 0
+
+The metric `ipmi_bmc_watchdog_pretimeout_interval_seconds` shows the current
+pre-timeout interval as measured in seconds.
+
+The metric `ipmi_bmc_watchdog_initial_countdown_seconds` shows the configured
+countdown in seconds.
+
+The metric `ipmi_bmc_watchdog_current_countdown_seconds` shows the current
+countdown in seconds.
+
 
 ## Chassis Power State
 
