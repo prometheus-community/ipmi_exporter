@@ -3,7 +3,9 @@ Prometheus IPMI Exporter
 
 [![Build Status](https://circleci.com/gh/prometheus-community/ipmi_exporter.svg?style=svg)](https://circleci.com/gh/prometheus-community/ipmi_exporter)
 
-This is an IPMI exporter for [Prometheus](https://prometheus.io).
+This is an IPMI exporter for [Prometheus][prometheus].
+
+[prometheus]: https://prometheus.io "Prometheus homepage"
 
 It supports both the regular `/metrics` endpoint, exposing metrics from the
 host that the exporter is running on, as well as an `/ipmi` endpoint that
@@ -11,14 +13,20 @@ supports IPMI over RMCP - one exporter running on one host can be used to
 monitor a large number of IPMI interfaces by passing the `target` parameter to
 a scrape.
 
-The exporter relies on tools from the
-[FreeIPMI](https://www.gnu.org/software/freeipmi/) suite for the actual IPMI
-implementation.
+The exporter relies on tools from the [FreeIPMI][freeipmi] suite for the actual
+IPMI implementation.
+
+[freeipmi]: https://www.gnu.org/software/freeipmi/ "FreeIPMI homepage"
 
 ## Installation
 
-For most use-cases, simply download the [the latest
-release](https://github.com/prometheus-community/ipmi_exporter/releases).
+For most use-cases, simply download the [the latest release][releases].
+
+[releases]: https://github.com/prometheus-community/ipmi_exporter/releases "IPMI exporter releases on Github"
+
+For Kubernets, you can use the community-maintained [Helm chart][helm].
+
+[helm]: https://github.com/prometheus-community/helm-charts/tree/main/charts/prometheus-ipmi-exporter "IPMI exporter Helm chart in the helm-charts Github repo"
 
 ### Building from source
 
@@ -65,8 +73,8 @@ For syntax and a complete list of available parameters, run:
 
     ./ipmi_exporter -h
 
-Make sure you have the following tools from the
-[FreeIPMI](https://www.gnu.org/software/freeipmi/) suite installed:
+Make sure you have the following tools from the [FreeIPMI][freeipmi] suite
+installed:
 
  - `ipmimonitoring`/`ipmi-sensors`
  - `ipmi-dcmi`
@@ -126,7 +134,9 @@ The IPMI Exporter supports TLS and basic authentication.
 
 To use TLS and/or basic authentication, you need to pass a configuration file
 using the `--web.config.file` parameter. The format of the file is described
-[in the exporter-toolkit repository](https://github.com/prometheus/exporter-toolkit/blob/master/docs/web-configuration.md).
+[in the exporter-toolkit repository][toolkit].
+
+[toolkit]: https://github.com/prometheus/exporter-toolkit/blob/master/docs/web-configuration.md
 
 ## Exported data
 
