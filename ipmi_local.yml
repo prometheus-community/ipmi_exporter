@@ -4,7 +4,7 @@
 # In most cases, this should work without using a config file at all.
 modules:
         default:
-                # Available collectors are bmc, ipmi, chassis, dcmi, sel, and sm-lan-mode
+                # Available collectors are bmc, bmc-watchdog, ipmi, chassis, dcmi, sel, and sm-lan-mode
                 collectors:
                 - bmc
                 - ipmi

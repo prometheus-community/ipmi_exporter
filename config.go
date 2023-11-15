@@ -76,6 +76,8 @@ func (c CollectorName) GetInstance() (collector, error) {
 		return IPMICollector{}, nil
 	case BMCCollectorName:
 		return BMCCollector{}, nil
+	case BMCWatchdogCollectorName:
+		return BMCWatchdogCollector{}, nil
 	case SELCollectorName:
 		return SELCollector{}, nil
 	case DCMICollectorName:

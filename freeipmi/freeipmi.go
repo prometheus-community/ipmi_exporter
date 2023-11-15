@@ -33,16 +33,24 @@ import (
 )
 
 var (
-	ipmiDCMIPowerMeasurementRegex     = regexp.MustCompile(`^Power Measurement\s*:\s*(?P<value>Active|Not\sAvailable).*`)
-	ipmiDCMICurrentPowerRegex         = regexp.MustCompile(`^Current Power\s*:\s*(?P<value>[0-9.]*)\s*Watts.*`)
-	ipmiChassisPowerRegex             = regexp.MustCompile(`^System Power\s*:\s(?P<value>.*)`)
-	ipmiChassisDriveFaultRegex        = regexp.MustCompile(`^Drive Fault\s*:\s(?P<value>.*)`)
-	ipmiChassisCoolingFaultRegex      = regexp.MustCompile(`^Cooling/fan fault\s*:\s(?P<value>.*)`)
-	ipmiSELEntriesRegex               = regexp.MustCompile(`^Number of log entries\s*:\s(?P<value>[0-9.]*)`)
-	ipmiSELFreeSpaceRegex             = regexp.MustCompile(`^Free space remaining\s*:\s(?P<value>[0-9.]*)\s*bytes.*`)
-	bmcInfoFirmwareRevisionRegex      = regexp.MustCompile(`^Firmware Revision\s*:\s*(?P<value>[0-9.]*).*`)
-	bmcInfoSystemFirmwareVersionRegex = regexp.MustCompile(`^System Firmware Version\s*:\s*(?P<value>[0-9.]*).*`)
-	bmcInfoManufacturerIDRegex        = regexp.MustCompile(`^Manufacturer ID\s*:\s*(?P<value>.*)`)
+	ipmiDCMIPowerMeasurementRegex       = regexp.MustCompile(`^Power Measurement\s*:\s*(?P<value>Active|Not\sAvailable).*`)
+	ipmiDCMICurrentPowerRegex           = regexp.MustCompile(`^Current Power\s*:\s*(?P<value>[0-9.]*)\s*Watts.*`)
+	ipmiChassisPowerRegex               = regexp.MustCompile(`^System Power\s*:\s(?P<value>.*)`)
+	ipmiChassisDriveFaultRegex          = regexp.MustCompile(`^Drive Fault\s*:\s(?P<value>.*)`)
+	ipmiChassisCoolingFaultRegex        = regexp.MustCompile(`^Cooling/fan fault\s*:\s(?P<value>.*)`)
+	ipmiSELEntriesRegex                 = regexp.MustCompile(`^Number of log entries\s*:\s(?P<value>[0-9.]*)`)
+	ipmiSELFreeSpaceRegex               = regexp.MustCompile(`^Free space remaining\s*:\s(?P<value>[0-9.]*)\s*bytes.*`)
+	bmcInfoFirmwareRevisionRegex        = regexp.MustCompile(`^Firmware Revision\s*:\s*(?P<value>[0-9.]*).*`)
+	bmcInfoSystemFirmwareVersionRegex   = regexp.MustCompile(`^System Firmware Version\s*:\s*(?P<value>[0-9.]*).*`)
+	bmcInfoManufacturerIDRegex          = regexp.MustCompile(`^Manufacturer ID\s*:\s*(?P<value>.*)`)
+	bmcWatchdogTimerStateRegex          = regexp.MustCompile(`^Timer:\s*(?P<value>Running|Stopped)`)
+	bmcWatchdogTimerUseRegex            = regexp.MustCompile(`^Timer Use:\s*(?P<value>.*)`)
+	bmcWatchdogTimerLoggingRegex        = regexp.MustCompile(`^Logging:\s*(?P<value>Enabled|Disabled)`)
+	bmcWatchdogTimeoutActionRegex       = regexp.MustCompile(`^Timeout Action:\s*(?P<value>.*)`)
+	bmcWatchdogPretimeoutInterruptRegex = regexp.MustCompile(`^Pre-Timeout Interrupt:\s*(?P<value>.*)`)
+	bmcWatchdogPretimeoutIntervalRegex  = regexp.MustCompile(`^Pre-Timeout Interval:\s*(?P<value>[0-9.]*)\s*seconds.*`)
+	bmcWatchdogInitialCountdownRegex    = regexp.MustCompile(`^Initial Countdown:\s*(?P<value>[0-9.]*)\s*seconds.*`)
+	bmcWatchdogCurrentCountdownRegex    = regexp.MustCompile(`^Current Countdown:\s*(?P<value>[0-9.]*)\s*seconds.*`)
 )
 
 // Result represents the outcome of a call to one of the FreeIPMI tools.
@@ -326,4 +334,86 @@ func GetRawOctets(ipmiOutput Result) ([]string, error) {
 	}
 	octets := strings.Split(strOutput[6:], " ")
 	return octets, nil
+}
+
+func GetBMCWatchdogTimerState(ipmiOutput Result) (float64, error) {
+	if ipmiOutput.err != nil {
+		return -1, fmt.Errorf("%s: %s", ipmiOutput.err, ipmiOutput.output)
+	}
+	value, err := getValue(ipmiOutput.output, bmcWatchdogTimerStateRegex)
+	if err != nil {
+		return -1, err
+	}
+	if value == "Running" {
+		return 1, err
+	}
+	return 0, err
+}
+
+func GetBMCWatchdogTimerUse(ipmiOutput Result) (string, error) {
+	if ipmiOutput.err != nil {
+		return "", fmt.Errorf("%s: %s", ipmiOutput.err, ipmiOutput.output)
+	}
+	return getValue(ipmiOutput.output, bmcWatchdogTimerUseRegex)
+}
+
+func GetBMCWatchdogLoggingState(ipmiOutput Result) (float64, error) {
+	if ipmiOutput.err != nil {
+		return -1, fmt.Errorf("%s: %s", ipmiOutput.err, ipmiOutput.output)
+	}
+	value, err := getValue(ipmiOutput.output, bmcWatchdogTimerLoggingRegex)
+	if err != nil {
+		return -1, err
+	}
+	if value == "Enabled" {
+		return 1, err
+	}
+	return 0, err
+}
+
+func GetBMCWatchdogTimeoutAction(ipmiOutput Result) (string, error) {
+	if ipmiOutput.err != nil {
+		return "", fmt.Errorf("%s: %s", ipmiOutput.err, ipmiOutput.output)
+	}
+	return getValue(ipmiOutput.output, bmcWatchdogTimeoutActionRegex)
+}
+
+func GetBMCWatchdogPretimeoutInterrupt(ipmiOutput Result) (string, error) {
+	if ipmiOutput.err != nil {
+		return "", fmt.Errorf("%s: %s", ipmiOutput.err, ipmiOutput.output)
+	}
+	return getValue(ipmiOutput.output, bmcWatchdogPretimeoutInterruptRegex)
+}
+
+func GetBMCWatchdogPretimeoutInterval(ipmiOutput Result) (float64, error) {
+	if ipmiOutput.err != nil {
+		return -1, fmt.Errorf("%s: %s", ipmiOutput.err, ipmiOutput.output)
+	}
+	value, err := getValue(ipmiOutput.output, bmcWatchdogPretimeoutIntervalRegex)
+	if err != nil {
+		return -1, err
+	}
+	return strconv.ParseFloat(value, 64)
+}
+
+func GetBMCWatchdogInitialCountdown(ipmiOutput Result) (float64, error) {
+	if ipmiOutput.err != nil {
+		return -1, fmt.Errorf("%s: %s", ipmiOutput.err, ipmiOutput.output)
+	}
+	value, err := getValue(ipmiOutput.output, bmcWatchdogInitialCountdownRegex)
+	if err != nil {
+		return -1, err
+	}
+	return strconv.ParseFloat(value, 64)
+}
+
+func GetBMCWatchdogCurrentCountdown(ipmiOutput Result) (float64, error) {
+	if ipmiOutput.err != nil {
+		return -1, fmt.Errorf("%s: %s", ipmiOutput.err, ipmiOutput.output)
+	}
+	value, err := getValue(ipmiOutput.output, bmcWatchdogCurrentCountdownRegex)
+	if err != nil {
+		return -1, err
+	}
+	return strconv.ParseFloat(value, 64)
 }
