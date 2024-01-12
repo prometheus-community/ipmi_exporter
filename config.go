@@ -16,6 +16,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -80,6 +81,8 @@ func (c CollectorName) GetInstance() (collector, error) {
 		return BMCWatchdogCollector{}, nil
 	case SELCollectorName:
 		return SELCollector{}, nil
+	case SELEventsCollectorName:
+		return SELEventsCollector{}, nil
 	case DCMICollectorName:
 		return DCMICollector{}, nil
 	case ChassisCollectorName:
@@ -124,8 +127,15 @@ type IPMIConfig struct {
 	CollectorArgs    map[CollectorName][]string `yaml:"default_args"`
 	CustomArgs       map[CollectorName][]string `yaml:"custom_args"`
 
+	SELEvents []*IpmiSELEvent `yaml:"sel_events,omitempty"`
 	// Catches all undefined fields and must be empty after parsing.
 	XXX map[string]interface{} `yaml:",inline"`
+}
+
+type IpmiSELEvent struct {
+	Name     string         `yaml:"name"`
+	RegexRaw string         `yaml:"regex"`
+	Regex    *regexp.Regexp `yaml:"-"`
 }
 
 var defaultConfig = IPMIConfig{
@@ -169,6 +179,9 @@ func (s *IPMIConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		if err := c.IsValid(); err != nil {
 			return err
 		}
+	}
+	for _, selEvent := range s.SELEvents {
+		selEvent.Regex = regexp.MustCompile(selEvent.RegexRaw)
 	}
 	return nil
 }

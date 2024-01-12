@@ -14,6 +14,7 @@
 package freeipmi
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/rand"
 	"encoding/csv"
@@ -40,6 +41,7 @@ var (
 	ipmiChassisCoolingFaultRegex        = regexp.MustCompile(`^Cooling/fan fault\s*:\s(?P<value>.*)`)
 	ipmiSELEntriesRegex                 = regexp.MustCompile(`^Number of log entries\s*:\s(?P<value>[0-9.]*)`)
 	ipmiSELFreeSpaceRegex               = regexp.MustCompile(`^Free space remaining\s*:\s(?P<value>[0-9.]*)\s*bytes.*`)
+	ipmiSELEventRegex                   = regexp.MustCompile(`^(?P<id>[0-9]+),\s*(?P<date>[^,]*),(?P<time>[^,]*),(?P<name>[^,]*),(?P<type>[^,]*),(?P<state>[^,]*),(?P<event>[^,]*)$`)
 	bmcInfoFirmwareRevisionRegex        = regexp.MustCompile(`^Firmware Revision\s*:\s*(?P<value>[0-9.]*).*`)
 	bmcInfoSystemFirmwareVersionRegex   = regexp.MustCompile(`^System Firmware Version\s*:\s*(?P<value>[0-9.]*).*`)
 	bmcInfoManufacturerIDRegex          = regexp.MustCompile(`^Manufacturer ID\s*:\s*(?P<value>.*)`)
@@ -68,6 +70,17 @@ type SensorData struct {
 	State string
 	Value float64
 	Unit  string
+	Event string
+}
+
+// SELEvent represents log line from SEL
+type SELEventData struct {
+	ID    int64
+	Date  string
+	Time  string
+	Name  string
+	Type  string
+	State string
 	Event string
 }
 
@@ -416,4 +429,45 @@ func GetBMCWatchdogCurrentCountdown(ipmiOutput Result) (float64, error) {
 		return -1, err
 	}
 	return strconv.ParseFloat(value, 64)
+}
+
+func GetSELEvents(ipmiOutput Result) ([]SELEventData, error) {
+	if ipmiOutput.err != nil {
+		return nil, fmt.Errorf("%s: %s", ipmiOutput.err, ipmiOutput.output)
+	}
+
+	scanner := bufio.NewScanner(bytes.NewReader(ipmiOutput.output))
+	events := []SELEventData{}
+	for scanner.Scan() {
+		line := scanner.Text()
+		match := ipmiSELEventRegex.FindStringSubmatch(line)
+		// ignore lines which does not matches event regexp
+		if match == nil {
+			continue
+		}
+
+		result := make(map[string]string)
+		for i, name := range ipmiSELEventRegex.SubexpNames() {
+			if i != 0 && name != "" {
+				result[name] = match[i]
+			}
+		}
+		id, err := strconv.ParseInt(result["id"], 10, 64)
+
+		// ignore lines which does not starts with number
+		if err != nil {
+			continue
+		}
+
+		events = append(events, SELEventData{
+			ID:    id,
+			Date:  result["date"],
+			Time:  result["time"],
+			Name:  result["name"],
+			Type:  result["type"],
+			State: result["state"],
+			Event: result["event"],
+		})
+	}
+	return events, nil
 }

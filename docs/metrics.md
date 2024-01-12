@@ -19,6 +19,8 @@ These metrics provide data about the scrape itself:
      the chassis power state metric (see below) will not be available
    - `sel`: collects system event log (SEL) details. If it fails, SEL metrics
      (see below) will not be available
+   - `sel-events`: collects metrics for user-defined events in system event log
+      (SEL). If it fails, SEL entries metrics (see below) will not be available
    - `sm-lan-mode`: collects the "LAN mode" setting in the current BMC config.
      If it fails, the LAN mode metric (see below) will not be available
  - `ipmi_scrape_duration_seconds` is the amount of time it took to retrieve the
@@ -87,7 +89,6 @@ countdown in seconds.
 The metric `ipmi_bmc_watchdog_current_countdown_seconds` shows the current
 countdown in seconds.
 
-
 ## Chassis Power State
 
 This metric is only provided if the `chassis` collector is enabled.
@@ -115,6 +116,23 @@ no labels.
 
 The metric `ipmi_sel_free_space_bytes` contains the current number of free
 space for new SEL entries, in bytes. This metric has no labels.
+
+## System event log (SEL) entries metrics
+
+These metrics are only provided if the `sel-events` collector is enabled (it
+isn't by default).
+
+For each event specified in the configuration file (`sel_events` field), will be
+generated metrics containing the number of such events and the timestamp of their
+last occurrence. Example:
+
+    ipmi_sel_events_count_by_name{name="my_custom_event_from_config"} 77
+    ipmi_sel_events_latest_timestamp{name="my_custom_event_from_config"} 1.703613275e+09
+
+also next aggregated metrics will be exported:
+
+    ipmi_sel_events_count_by_state{state="Nominal"} 10
+    ipmi_sel_events_count_by_state{state="Warning"} 5
 
 ## Supermicro LAN mode setting
 
