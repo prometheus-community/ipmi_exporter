@@ -1,5 +1,11 @@
 ## next
 
+## 1.8.0 / 2024-10-23
+
+* Added BMC watchdog collector (#176)
+* Added SEL event metrics collector (#179)
+* Various dependency updates
+
 ## 1.7.0 / 2023-10-18
 
 * Update common files
