@@ -45,6 +45,12 @@ var (
 		[]string{"name"},
 		nil,
 	)
+	selEventsLog = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "sel_events", "log"),
+		"log entries",
+		[]string{"log"},
+		nil,
+	)
 )
 
 type SELEventsCollector struct{}
@@ -137,5 +143,20 @@ func (c SELEventsCollector) Collect(result freeipmi.Result, ch chan<- prometheus
 			name,
 		)
 	}
+
+	log, err := freeipmi.GetStringSELEvents(result)
+	if err != nil {
+		level.Error(logger).Log("msg", "Failed to collect SEL events logs", "target", targetName(target.host), "error", err)
+		return 0, err
+	}
+	level.Info(logger).Log(log)
+
+	ch <- prometheus.MustNewConstMetric(
+		selEventsLog,
+		prometheus.GaugeValue,
+		1,
+		log,
+	)
+
 	return 1, nil
 }
