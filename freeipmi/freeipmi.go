@@ -477,3 +477,11 @@ func GetSELEvents(ipmiOutput Result) ([]SELEventData, error) {
 	}
 	return events, nil
 }
+
+func GetStringSELEvents(ipmiOutput Result) (string, error) {
+	if ipmiOutput.err != nil {
+		return "", fmt.Errorf("%s: %s", ipmiOutput.err, ipmiOutput.output)
+	}
+	events := string(ipmiOutput.output)
+	return events, nil
+}
