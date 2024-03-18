@@ -1,6 +1,6 @@
 ARG ARCH="amd64"
 ARG OS="linux"
-FROM alpine:3
+FROM --platform=${OS}/${ARCH} alpine:3
 RUN apk --no-cache add freeipmi
 LABEL maintainer="The Prometheus Authors <prometheus-developers@googlegroups.com>"
 
