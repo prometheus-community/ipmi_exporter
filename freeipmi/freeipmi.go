@@ -43,7 +43,7 @@ var (
 	ipmiSELFreeSpaceRegex               = regexp.MustCompile(`^Free space remaining\s*:\s(?P<value>[0-9.]*)\s*bytes.*`)
 	ipmiSELEventRegex                   = regexp.MustCompile(`^(?P<id>[0-9]+),\s*(?P<date>[^,]*),(?P<time>[^,]*),(?P<name>[^,]*),(?P<type>[^,]*),(?P<state>[^,]*),(?P<event>[^,]*)$`)
 	bmcInfoFirmwareRevisionRegex        = regexp.MustCompile(`^Firmware Revision\s*:\s*(?P<value>[0-9.]*).*`)
-	bmcInfoSystemFirmwareVersionRegex   = regexp.MustCompile(`^System Firmware Version\s*:\s*(?P<value>[0-9.]*).*`)
+	bmcInfoSystemFirmwareVersionRegex   = regexp.MustCompile(`^(System Firmware Version|Firmware Revision)\s*:\s*(?P<value>[0-9.]*).*`)
 	bmcInfoManufacturerIDRegex          = regexp.MustCompile(`^Manufacturer ID\s*:\s*(?P<value>.*)`)
 	bmcWatchdogTimerStateRegex          = regexp.MustCompile(`^Timer:\s*(?P<value>Running|Stopped)`)
 	bmcWatchdogTimerUseRegex            = regexp.MustCompile(`^Timer Use:\s*(?P<value>.*)`)
