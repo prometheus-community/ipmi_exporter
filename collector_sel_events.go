@@ -24,6 +24,7 @@ import (
 
 const (
 	SELEventsCollectorName CollectorName = "sel-events"
+	SELDateTimeFormat      string        = "Jan-02-2006 15:04:05"
 )
 
 var (
@@ -92,12 +93,20 @@ func (c SELEventsCollector) Collect(result freeipmi.Result, ch chan<- prometheus
 		for _, metricConfig := range selEventConfigs {
 			match := metricConfig.Regex.FindStringSubmatch(data.Event)
 			if match != nil {
-				t, err := time.Parse("Jan-02-2006 15:04:05", data.Date+" "+data.Time)
+				var newTimestamp float64 = 0
+				datetime := data.Date + " " + data.Time
+				t, err := time.Parse(SELDateTimeFormat, datetime)
+				// ignore errors with invalid date or time
+				// NOTE: in some cases ipmi-sel can return "PostInit" in Date and Time fields
+				// Example:
+				// $ ipmi-sel --comma-separated-output --output-event-state --interpret-oem-data --output-oem-event-strings
+				// ID,Date,Time,Name,Type,State,Event
+				// 3,PostInit,PostInit,Sensor #211,Memory,Warning,Correctable memory error ; Event Data3 = 34h
 				if err != nil {
-					level.Error(logger).Log("msg", "Failed to collect SEL event metrics", "target", targetName(target.host), "error", err)
-					return 0, err
+					level.Debug(logger).Log("msg", "Failed to parse time", "target", targetName(target.host), "error", err)
+				} else {
+					newTimestamp = float64(t.Unix())
 				}
-				newTimestamp := float64(t.Unix())
 				// save latest timestamp by name metrics
 				if newTimestamp > selEventByNameTimestamp[metricConfig.Name] {
 					selEventByNameTimestamp[metricConfig.Name] = newTimestamp
