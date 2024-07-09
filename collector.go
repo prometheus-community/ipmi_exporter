@@ -99,7 +99,10 @@ func (c metaCollector) Collect(ch chan<- prometheus.Metric) {
 		var up int
 		level.Debug(logger).Log("msg", "Running collector", "target", target.host, "collector", collector.Name())
 
-		fqcmd := path.Join(*executablesPath, collector.Cmd())
+		fqcmd := collector.Cmd()
+		if !path.IsAbs(fqcmd) {
+			fqcmd = path.Join(*executablesPath, collector.Cmd())
+		}
 		args := collector.Args()
 		cfg := config.GetFreeipmiConfig()
 
