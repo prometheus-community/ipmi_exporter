@@ -104,7 +104,7 @@ func (c metaCollector) Collect(ch chan<- prometheus.Metric) {
 			fqcmd = path.Join(*executablesPath, collector.Cmd())
 		}
 		args := collector.Args()
-		cfg := config.GetFreeipmiConfig()
+		cfg := config.GetFreeipmiConfig(target)
 
 		result := freeipmi.Execute(fqcmd, args, cfg, target.host, logger)
 
