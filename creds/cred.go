@@ -13,7 +13,7 @@ type credentials struct {
 	Pass string `json:"value2"`
 }
 
-const baseURL string = "localhost:8200"
+const baseURL string = "http://10.50.1.65:8200"
 
 func GetCreds(param string) (*credentials, error) {
 

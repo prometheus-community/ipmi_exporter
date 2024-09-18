@@ -18,7 +18,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 
 	kingpin "github.com/alecthomas/kingpin/v2"
@@ -50,15 +49,10 @@ var (
 	reloadCh chan chan error
 
 	logger log.Logger
-
-	port = "623"
 )
 
 func remoteIPMIHandler(w http.ResponseWriter, r *http.Request) {
 	target := r.URL.Query().Get("target")
-	parts := strings.Split(target, ":")
-	target = parts[0]
-	port = parts[1]
 	if target == "" {
 		http.Error(w, "'target' parameter must be specified", 400)
 		return
