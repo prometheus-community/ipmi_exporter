@@ -148,7 +148,7 @@ func freeipmiConfigPipe(config string, logger log.Logger) (string, error) {
 	return pipe, nil
 }
 
-func Execute(cmd string, args []string, config string, target string, logger log.Logger) Result {
+func Execute(cmd string, args []string, config string, target string, port string, logger log.Logger) Result {
 	pipe, err := freeipmiConfigPipe(config, logger)
 	if err != nil {
 		return Result{nil, err}
@@ -162,6 +162,7 @@ func Execute(cmd string, args []string, config string, target string, logger log
 	args = append(args, "--config-file", pipe)
 	if target != "" {
 		args = append(args, "-h", target)
+		args = append(args, "-p", port)
 	}
 
 	level.Debug(logger).Log("msg", "Executing", "command", cmd, "args", fmt.Sprintf("%+v", args))
