@@ -23,7 +23,6 @@ import (
 	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/prometheus-community/ipmi_exporter/creds"
 	"github.com/prometheus-community/ipmi_exporter/freeipmi"
 
 	yaml "gopkg.in/yaml.v2"
@@ -206,11 +205,6 @@ func (c IPMIConfig) GetCollectors() []collector {
 func (c IPMIConfig) GetFreeipmiConfig(target ipmiTarget) string {
 	var b strings.Builder
 
-	creds, err := creds.GetCreds(target.host)
-	if err != nil {
-		fmt.Print("Error:", err)
-	}
-
 	if c.Driver != "" {
 		fmt.Fprintf(&b, "driver-type %s\n", c.Driver)
 	}
@@ -218,10 +212,10 @@ func (c IPMIConfig) GetFreeipmiConfig(target ipmiTarget) string {
 		fmt.Fprintf(&b, "privilege-level %s\n", c.Privilege)
 	}
 	if c.User != "" {
-		fmt.Fprintf(&b, "username %s\n", creds.User)
+		fmt.Fprintf(&b, "username %s\n", c.User)
 	}
 	if c.Password != "" {
-		fmt.Fprintf(&b, "password %s\n", freeipmi.EscapePassword(creds.Pass))
+		fmt.Fprintf(&b, "password %s\n", freeipmi.EscapePassword(c.Password))
 	}
 	if c.Timeout != 0 {
 		fmt.Fprintf(&b, "session-timeout %d\n", c.Timeout)

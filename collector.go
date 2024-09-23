@@ -14,12 +14,14 @@
 package main
 
 import (
+	"fmt"
 	"path"
 	"time"
 
 	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/prometheus-community/ipmi_exporter/creds"
 	"github.com/prometheus-community/ipmi_exporter/freeipmi"
 )
 
@@ -90,6 +92,14 @@ func (c metaCollector) Collect(ch chan<- prometheus.Metric) {
 	}()
 
 	config := c.config.ConfigForTarget(c.target, c.module)
+
+	creds, err := creds.GetCreds(c.target)
+	if err != nil {
+		fmt.Print("Error:", err)
+	}
+	config.User = creds.User
+	config.Password = creds.Pass
+
 	target := ipmiTarget{
 		host:   c.target,
 		config: config,
