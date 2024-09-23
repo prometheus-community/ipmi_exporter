@@ -1,52 +1,54 @@
 package creds
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"net/url"
+	"log"
+
+	"github.com/hashicorp/vault/api"
 )
 
-type credentials struct {
-	User string `json:"username"`
-	Pass string `json:"password"`
+func getVaultClient() (*api.Client, error) {
+	config := api.DefaultConfig()
+	config.Address = "http://192.168.122.79:8200" //"http://192.168.122.79:8200" // Ensure VAULT_ADDR is set
+
+	client, err := api.NewClient(config)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set the Vault token from environment variables
+	client.SetToken("hvs.CAESIB0uncyw0pyNtjhOf2YMN8mGJfbhnTh6Y_doeqRDJwujGh4KHGh2cy5USFZXdWhRSnZNdmlUQ2VPcjlwcEswSDQ")
+	return client, nil
 }
 
-const baseURL string = "http://10.50.1.65:8200"
+func getCredentialsFromVault(client *api.Client, targetAddress string) (map[string]interface{}, error) {
+	// Construct the Vault path based on the target's address
+	vaultPath := fmt.Sprintf("kv/%s", targetAddress)
 
-func GetCreds(param string) (*credentials, error) {
-	escapedParam := url.QueryEscape(param)
-	url := fmt.Sprintf("%s/get-data?target=%s", baseURL, escapedParam)
-
-	resp, err := http.Get(url)
+	// Access the path and get the secrets
+	secret, err := client.Logical().Read(vaultPath)
 	if err != nil {
-		return nil, fmt.Errorf("error making request: %w", err)
+		return nil, err
 	}
-	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	if secret == nil || secret.Data == nil {
+		return nil, fmt.Errorf("no data found for target %s", targetAddress)
+	}
+
+	return secret.Data, nil
+}
+
+func GetCreds(target string) (username string, password string, err error) {
+
+	client, err := getVaultClient()
 	if err != nil {
-		return nil, fmt.Errorf("error reading response: %w", err)
+		log.Fatalf("Error creating Vault client: %v", err)
 	}
 
-	// Use a map to unmarshal the response
-	var data map[string]interface{}
-	err = json.Unmarshal(body, &data)
+	creds, err := getCredentialsFromVault(client, target)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing response: %w", err)
+		log.Fatalf("Error retrieving credentials: %v", err)
 	}
 
-	// Access username and password from the map
-	user, ok := data["username"].(string)
-	if !ok {
-		return nil, fmt.Errorf("username not found or invalid type")
-	}
-
-	pass, ok := data["password"].(string)
-	if !ok {
-		return nil, fmt.Errorf("password not found or invalid type")
-	}
-
-	return &credentials{User: user, Pass: pass}, nil
+	return creds["username"].(string), creds["password"].(string), nil
 }

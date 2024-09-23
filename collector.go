@@ -93,12 +93,12 @@ func (c metaCollector) Collect(ch chan<- prometheus.Metric) {
 
 	config := c.config.ConfigForTarget(c.target, c.module)
 
-	creds, err := creds.GetCreds(c.target)
+	username, password, err := creds.GetCreds(c.target)
 	if err != nil {
 		fmt.Print("Error:", err)
 	}
-	config.User = creds.User
-	config.Password = creds.Pass
+	config.User = username
+	config.Password = password
 
 	target := ipmiTarget{
 		host:   c.target,
