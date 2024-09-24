@@ -14,6 +14,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"os"
@@ -23,6 +24,7 @@ import (
 	kingpin "github.com/alecthomas/kingpin/v2"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
+	vaultlib "github.com/prometheus-community/ipmi_exporter/creds"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/promlog"
@@ -52,6 +54,8 @@ var (
 	reloadCh chan chan error
 
 	logger log.Logger
+
+	VaultClient vaultlib.VaultClient
 )
 
 func remoteIPMIHandler(w http.ResponseWriter, r *http.Request) {
@@ -109,6 +113,34 @@ func main() {
 	if err := sc.ReloadConfig(*configFile); err != nil {
 		level.Error(logger).Log("msg", "Error parsing config file", "error", err)
 		os.Exit(1)
+	}
+
+	if *isHashiCorp {
+		// Ensure the vault address and token file are provided
+		if *vaultAddress == "" || *tokenFile == "" {
+			level.Error(logger).Log("Both --ip and --token-file are required when using HashiCorp Vault.")
+			os.Exit(1)
+		}
+
+		// Read the token from the specified file
+		token, err := os.ReadFile(*tokenFile)
+		if err != nil {
+			level.Error(logger).Log("msg", "Error reading Token File", "error", err)
+			os.Exit(1)
+		}
+
+		// Convert byte slices to strings and trim whitespace
+		vaultToken := string(bytes.TrimSpace(token))
+		VaultClient, err = vaultlib.NewVaultClient("hashicorp", *vaultAddress, vaultToken)
+		if VaultClient == nil {
+			fmt.Print("Error:", err)
+			os.Exit(1)
+		}
+		if err != nil {
+			fmt.Print("Error:", err)
+			os.Exit(1)
+		}
+
 	}
 
 	hup := make(chan os.Signal, 1)
