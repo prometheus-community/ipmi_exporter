@@ -14,14 +14,16 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"os"
 	"path"
 	"time"
 
 	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/prometheus-community/ipmi_exporter/creds"
+	vaultlib "github.com/prometheus-community/ipmi_exporter/creds"
 	"github.com/prometheus-community/ipmi_exporter/freeipmi"
 )
 
@@ -93,12 +95,29 @@ func (c metaCollector) Collect(ch chan<- prometheus.Metric) {
 
 	config := c.config.ConfigForTarget(c.target, c.module)
 
-	username, password, err := creds.GetCreds(c.target)
-	if err != nil {
-		fmt.Print("Error:", err)
+	if *isHashiCorp {
+		// Ensure the vault address and token file are provided
+		if *vaultAddress == "" || *tokenFile == "" {
+			level.Error(logger).Log("Both --ip and --token-file are required when using HashiCorp Vault.")
+		}
+
+		// Read the token from the specified file
+		token, err := os.ReadFile(*tokenFile)
+		if err != nil {
+			level.Error(logger).Log("msg", "Error reading Token File", "error", err)
+		}
+
+		// Convert byte slices to strings and trim whitespace
+		vaultToken := string(bytes.TrimSpace(token))
+		vaultClient, err := vaultlib.NewVaultClient("hashicorp", *vaultAddress, vaultToken)
+		vaultlib.LogError(err)
+		username, password, err := vaultClient.GetCredentials(c.target)
+		if err != nil {
+			fmt.Print("Error:", err)
+		}
+		config.User = username
+		config.Password = password
 	}
-	config.User = username
-	config.Password = password
 
 	target := ipmiTarget{
 		host:   c.target,

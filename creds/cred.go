@@ -1,4 +1,4 @@
-package creds
+package vaultlib
 
 import (
 	"fmt"
@@ -7,48 +7,70 @@ import (
 	"github.com/hashicorp/vault/api"
 )
 
-func getVaultClient() (*api.Client, error) {
+// VaultClient defines the interface for interacting with a vault to get credentials.
+type VaultClient interface {
+	GetCredentials(target string) (username string, password string, err error)
+}
+
+// HashiCorpVaultClient implements the VaultClient interface for HashiCorp Vault.
+type HashiCorpVaultClient struct {
+	client *api.Client
+}
+
+// NewHashiCorpVaultClient creates a new Vault client for HashiCorp Vault.
+func NewHashiCorpVaultClient(address, token string) (VaultClient, error) {
 	config := api.DefaultConfig()
-	config.Address = "http://192.168.122.79:8200" //"http://192.168.122.79:8200" // Ensure VAULT_ADDR is set
+	config.Address = address
 
 	client, err := api.NewClient(config)
 	if err != nil {
 		return nil, err
 	}
 
-	// Set the Vault token from environment variables
-	client.SetToken("hvs.CAESIB0uncyw0pyNtjhOf2YMN8mGJfbhnTh6Y_doeqRDJwujGh4KHGh2cy5USFZXdWhRSnZNdmlUQ2VPcjlwcEswSDQ")
-	return client, nil
+	client.SetToken(token)
+	return &HashiCorpVaultClient{client: client}, nil
 }
 
-func getCredentialsFromVault(client *api.Client, targetAddress string) (map[string]interface{}, error) {
-	// Construct the Vault path based on the target's address
-	vaultPath := fmt.Sprintf("kv/%s", targetAddress)
+// GetCredentials retrieves credentials from HashiCorp Vault.
+func (h *HashiCorpVaultClient) GetCredentials(target string) (string, string, error) {
+	vaultPath := fmt.Sprintf("kv/%s", target)
 
-	// Access the path and get the secrets
-	secret, err := client.Logical().Read(vaultPath)
+	secret, err := h.client.Logical().Read(vaultPath)
 	if err != nil {
-		return nil, err
+		return "", "", err
 	}
 
 	if secret == nil || secret.Data == nil {
-		return nil, fmt.Errorf("no data found for target %s", targetAddress)
+		return "", "", fmt.Errorf("no data found for target %s", target)
 	}
 
-	return secret.Data, nil
+	username, ok := secret.Data["username"].(string)
+	if !ok {
+		return "", "", fmt.Errorf("username not found for target %s", target)
+	}
+
+	password, ok := secret.Data["password"].(string)
+	if !ok {
+		return "", "", fmt.Errorf("password not found for target %s", target)
+	}
+
+	return username, password, nil
 }
 
-func GetCreds(target string) (username string, password string, err error) {
-
-	client, err := getVaultClient()
-	if err != nil {
-		log.Fatalf("Error creating Vault client: %v", err)
+// NewVaultClient is a factory function that returns the appropriate VaultClient.
+func NewVaultClient(vaultType, address, token string) (VaultClient, error) {
+	switch vaultType {
+	case "hashicorp":
+		return NewHashiCorpVaultClient(address, token)
+	// Add cases for other vaults (e.g., AWS, GCP)
+	default:
+		return nil, fmt.Errorf("unsupported vault type: %s", vaultType)
 	}
+}
 
-	creds, err := getCredentialsFromVault(client, target)
+// LogError is a utility function for logging errors.
+func LogError(err error) {
 	if err != nil {
-		log.Fatalf("Error retrieving credentials: %v", err)
+		log.Printf("Error: %v", err)
 	}
-
-	return creds["username"].(string), creds["password"].(string), nil
 }

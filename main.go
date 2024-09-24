@@ -41,7 +41,10 @@ var (
 		"freeipmi.path",
 		"Path to FreeIPMI executables (default: rely on $PATH).",
 	).String()
-	webConfig = webflag.AddFlags(kingpin.CommandLine, ":9290")
+	isHashiCorp  = kingpin.Flag("hashicorp", "Use HashiCorp Vault").Short('H').Bool()
+	vaultAddress = kingpin.Flag("ip", "IP address of the Vault").String()
+	tokenFile    = kingpin.Flag("token-file", "Path to the file containing the Vault token").String()
+	webConfig    = webflag.AddFlags(kingpin.CommandLine, ":9290")
 
 	sc = &SafeConfig{
 		C: &Config{},
