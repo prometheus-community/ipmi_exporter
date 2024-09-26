@@ -92,7 +92,7 @@ func (c metaCollector) Collect(ch chan<- prometheus.Metric) {
 
 	config := c.config.ConfigForTarget(c.target, c.module)
 
-	if *isHashiCorp {
+	if VaultType != "" {
 		username, password, err := VaultClient.GetCredentials(c.target)
 		if err != nil {
 			level.Error(logger).Log("Error:", err.Error())

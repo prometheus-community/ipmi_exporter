@@ -1,33 +1,51 @@
-package vaultlib
+package vault
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
-	"log"
+	"os"
 
+	"github.com/alecthomas/kingpin/v2"
 	"github.com/hashicorp/vault/api"
 )
-
-// VaultClient defines the interface for interacting with a vault to get credentials.
-type VaultClient interface {
-	GetCredentials(target string) (username string, password string, err error)
-}
 
 // HashiCorpVaultClient implements the VaultClient interface for HashiCorp Vault.
 type HashiCorpVaultClient struct {
 	client *api.Client
 }
 
+// Adds the Hashicorp Flags
+func addHashiCorpFlags() {
+	vaultAddress = kingpin.Flag("ip", "IP address of the Vault").String()
+	tokenFile = kingpin.Flag("token-file", "Path to the file containing the Vault token").String()
+}
+
 // NewHashiCorpVaultClient creates a new Vault client for HashiCorp Vault.
-func NewHashiCorpVaultClient(address, token string) (VaultClient, error) {
+func NewHashiCorpVaultClient(vaultAddress, tokenFile string) (VaultClient, error) {
+
+	if vaultAddress == "" || tokenFile == "" {
+		return nil, errors.New("both --ip and --token-file are required when using hashicorp vault")
+	}
+
+	// Read the token from the specified file
+	token, err := os.ReadFile(tokenFile)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert byte slices to strings and trim whitespace
+	vaultToken := string(bytes.TrimSpace(token))
+
 	config := api.DefaultConfig()
-	config.Address = address
+	config.Address = vaultAddress
 
 	client, err := api.NewClient(config)
 	if err != nil {
 		return nil, err
 	}
 
-	client.SetToken(token)
+	client.SetToken(vaultToken)
 	return &HashiCorpVaultClient{client: client}, nil
 }
 
@@ -55,22 +73,4 @@ func (h *HashiCorpVaultClient) GetCredentials(target string) (string, string, er
 	}
 
 	return username, password, nil
-}
-
-// NewVaultClient is a factory function that returns the appropriate VaultClient.
-func NewVaultClient(vaultType, address, token string) (VaultClient, error) {
-	switch vaultType {
-	case "hashicorp":
-		return NewHashiCorpVaultClient(address, token)
-	// Add cases for other vaults (e.g., AWS, GCP)
-	default:
-		return nil, fmt.Errorf("unsupported vault type: %s", vaultType)
-	}
-}
-
-// LogError is a utility function for logging errors.
-func LogError(err error) {
-	if err != nil {
-		log.Printf("Error: %v", err)
-	}
 }

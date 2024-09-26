@@ -14,7 +14,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"net/http"
 	"os"
@@ -24,7 +23,7 @@ import (
 	kingpin "github.com/alecthomas/kingpin/v2"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
-	vaultlib "github.com/prometheus-community/ipmi_exporter/creds"
+	"github.com/prometheus-community/ipmi_exporter/vault"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/promlog"
@@ -43,10 +42,8 @@ var (
 		"freeipmi.path",
 		"Path to FreeIPMI executables (default: rely on $PATH).",
 	).String()
-	isHashiCorp  = kingpin.Flag("hashicorp", "Use HashiCorp Vault").Short('H').Bool()
-	vaultAddress = kingpin.Flag("ip", "IP address of the Vault").String()
-	tokenFile    = kingpin.Flag("token-file", "Path to the file containing the Vault token").String()
-	webConfig    = webflag.AddFlags(kingpin.CommandLine, ":9290")
+
+	webConfig = webflag.AddFlags(kingpin.CommandLine, ":9290")
 
 	sc = &SafeConfig{
 		C: &Config{},
@@ -55,7 +52,8 @@ var (
 
 	logger log.Logger
 
-	VaultClient vaultlib.VaultClient
+	VaultClient vault.VaultClient
+	VaultType   string
 )
 
 func remoteIPMIHandler(w http.ResponseWriter, r *http.Request) {
@@ -101,11 +99,13 @@ func updateConfiguration(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	promlogConfig := &promlog.Config{}
+	vaultType := vault.AddFlags()
 	flag.AddFlags(kingpin.CommandLine, promlogConfig)
 	kingpin.CommandLine.UsageWriter(os.Stdout)
 	kingpin.HelpFlag.Short('h')
 	kingpin.Version(version.Print("ipmi_exporter"))
 	kingpin.Parse()
+	VaultType = *vaultType
 	logger = promlog.New(promlogConfig)
 	level.Info(logger).Log("msg", "Starting ipmi_exporter", "version", version.Info())
 
@@ -114,33 +114,12 @@ func main() {
 		level.Error(logger).Log("msg", "Error parsing config file", "error", err)
 		os.Exit(1)
 	}
-
-	if *isHashiCorp {
-		// Ensure the vault address and token file are provided
-		if *vaultAddress == "" || *tokenFile == "" {
-			level.Error(logger).Log("Both --ip and --token-file are required when using HashiCorp Vault.")
-			os.Exit(1)
-		}
-
-		// Read the token from the specified file
-		token, err := os.ReadFile(*tokenFile)
+	if VaultType != "" {
+		vaultClient, err := vault.NewVaultClient(VaultType)
+		VaultClient = vaultClient
 		if err != nil {
-			level.Error(logger).Log("msg", "Error reading Token File", "error", err)
-			os.Exit(1)
+			level.Error(logger).Log("msg", "Error Creating a Vault Client", "error", err)
 		}
-
-		// Convert byte slices to strings and trim whitespace
-		vaultToken := string(bytes.TrimSpace(token))
-		VaultClient, err = vaultlib.NewVaultClient("hashicorp", *vaultAddress, vaultToken)
-		if VaultClient == nil {
-			fmt.Print("Error:", err)
-			os.Exit(1)
-		}
-		if err != nil {
-			fmt.Print("Error:", err)
-			os.Exit(1)
-		}
-
 	}
 
 	hup := make(chan os.Signal, 1)
