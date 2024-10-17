@@ -1,6 +1,13 @@
 ## next
 
-## 1.8.0 / 2024-10-23
+## 1.9.0 / 2024-10-17
+
+* Bring back aarch64 builds (#186)
+* Ignore time parse error in SEL events (#198)
+* Don't prepend to already absolute path from config (#199)
+* Various dependency updates
+
+## 1.8.0 / 2024-01-23
 
 * Added BMC watchdog collector (#176)
 * Added SEL event metrics collector (#179)
