@@ -9,9 +9,12 @@ This is an IPMI exporter for [Prometheus][prometheus].
 
 It supports both the regular `/metrics` endpoint, exposing metrics from the
 host that the exporter is running on, as well as an `/ipmi` endpoint that
-supports IPMI over RMCP - one exporter running on one host can be used to
-monitor a large number of IPMI interfaces by passing the `target` parameter to
-a scrape.
+supports IPMI over RMCP, implementing the multi-target exporter pattern. If you
+plan to use the latter, please read the guide [Understanding and using the
+multi-target exporter pattern][multi-target] to get the general idea about the
+configuration.
+
+[multi-target]: https://prometheus.io/docs/guides/multi-target-exporter/
 
 The exporter relies on tools from the [FreeIPMI][freeipmi] suite for the actual
 IPMI implementation.
