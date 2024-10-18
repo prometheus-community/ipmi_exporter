@@ -16,7 +16,6 @@ package main
 import (
 	"time"
 
-	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/prometheus-community/ipmi_exporter/freeipmi"
@@ -75,7 +74,7 @@ func (c SELEventsCollector) Collect(result freeipmi.Result, ch chan<- prometheus
 
 	events, err := freeipmi.GetSELEvents(result)
 	if err != nil {
-		level.Error(logger).Log("msg", "Failed to collect SEL events", "target", targetName(target.host), "error", err)
+		logger.Error("Failed to collect SEL events", "target", targetName(target.host), "error", err)
 		return 0, err
 	}
 
@@ -103,7 +102,7 @@ func (c SELEventsCollector) Collect(result freeipmi.Result, ch chan<- prometheus
 				// ID,Date,Time,Name,Type,State,Event
 				// 3,PostInit,PostInit,Sensor #211,Memory,Warning,Correctable memory error ; Event Data3 = 34h
 				if err != nil {
-					level.Debug(logger).Log("msg", "Failed to parse time", "target", targetName(target.host), "error", err)
+					logger.Debug("Failed to parse time", "target", targetName(target.host), "error", err)
 				} else {
 					newTimestamp = float64(t.Unix())
 				}

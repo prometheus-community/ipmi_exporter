@@ -20,7 +20,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/prometheus-community/ipmi_exporter/freeipmi"
@@ -239,7 +238,7 @@ func (sc *SafeConfig) ReloadConfig(configFile string) error {
 	if configFile != "" {
 		config, err = os.ReadFile(configFile)
 		if err != nil {
-			level.Error(logger).Log("msg", "Error reading config file", "error", err)
+			logger.Error("Error reading config file", "error", err)
 			return err
 		}
 	} else {
@@ -255,7 +254,7 @@ func (sc *SafeConfig) ReloadConfig(configFile string) error {
 	sc.Unlock()
 
 	if configFile != "" {
-		level.Info(logger).Log("msg", "Loaded config file", "path", configFile)
+		logger.Info("Loaded config file", "path", configFile)
 	}
 	return nil
 }
@@ -281,7 +280,7 @@ func (sc *SafeConfig) ConfigForTarget(target, module string) IPMIConfig {
 	if module != "default" {
 		config, ok = sc.C.Modules[module]
 		if !ok {
-			level.Error(logger).Log("msg", "Requested module not found, using default", "module", module, "target", targetName(target))
+			logger.Error("Requested module not found, using default", "module", module, "target", targetName(target))
 		}
 	}
 
@@ -290,7 +289,7 @@ func (sc *SafeConfig) ConfigForTarget(target, module string) IPMIConfig {
 		config, ok = sc.C.Modules["default"]
 		if !ok {
 			// This is probably fine for running locally, so not making this a warning
-			level.Debug(logger).Log("msg", "Needed default config for, but none configured, using FreeIPMI defaults", "target", targetName(target))
+			logger.Debug("Needed default config for, but none configured, using FreeIPMI defaults", "target", targetName(target))
 			config = defaultConfig
 		}
 	}
