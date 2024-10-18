@@ -8,7 +8,3 @@ issues:
   - path: _test.go
     linters:
     - errcheck
-
-linters-settings:
-  errcheck:
-    exclude-functions: []
