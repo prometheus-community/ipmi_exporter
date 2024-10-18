@@ -1,4 +1,8 @@
 ---
+linters:
+  enable:
+    - sloglint
+
 issues:
   exclude-rules:
   - path: _test.go
