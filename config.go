@@ -73,20 +73,44 @@ func (c CollectorName) GetInstance() (collector, error) {
 	// This is where a new collector would have to be "registered"
 	switch c {
 	case IPMICollectorName:
+		if *nativeIPMI {
+			return IPMINativeCollector{}, nil
+		}
 		return IPMICollector{}, nil
 	case BMCCollectorName:
+		if *nativeIPMI {
+			return BMCNativeCollector{}, nil
+		}
 		return BMCCollector{}, nil
 	case BMCWatchdogCollectorName:
+		if *nativeIPMI {
+			return BMCWatchdogNativeCollector{}, nil
+		}
 		return BMCWatchdogCollector{}, nil
 	case SELCollectorName:
+		if *nativeIPMI {
+			return SELNativeCollector{}, nil
+		}
 		return SELCollector{}, nil
 	case SELEventsCollectorName:
+		if *nativeIPMI {
+			return SELEventsNativeCollector{}, nil
+		}
 		return SELEventsCollector{}, nil
 	case DCMICollectorName:
+		if *nativeIPMI {
+			return DCMINativeCollector{}, nil
+		}
 		return DCMICollector{}, nil
 	case ChassisCollectorName:
+		if *nativeIPMI {
+			return ChassisNativeCollector{}, nil
+		}
 		return ChassisCollector{}, nil
 	case SMLANModeCollectorName:
+		if *nativeIPMI {
+			return SMLANModeNativeCollector{}, nil
+		}
 		return SMLANModeCollector{}, nil
 	}
 	return nil, fmt.Errorf("invalid collector: %s", string(c))
