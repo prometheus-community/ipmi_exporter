@@ -14,7 +14,6 @@
 package main
 
 import (
-	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/prometheus-community/ipmi_exporter/freeipmi"
@@ -95,42 +94,42 @@ func (c BMCWatchdogCollector) Args() []string {
 func (c BMCWatchdogCollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	timerState, err := freeipmi.GetBMCWatchdogTimerState(result)
 	if err != nil {
-		level.Error(logger).Log("msg", "Failed to collect BMC watchdog timer", "target", targetName(target.host), "error", err)
+		logger.Error("Failed to collect BMC watchdog timer", "target", targetName(target.host), "error", err)
 		return 0, err
 	}
 	currentTimerUse, err := freeipmi.GetBMCWatchdogTimerUse(result)
 	if err != nil {
-		level.Error(logger).Log("msg", "Failed to collect BMC watchdog timer use", "target", targetName(target.host), "error", err)
+		logger.Error("Failed to collect BMC watchdog timer use", "target", targetName(target.host), "error", err)
 		return 0, err
 	}
 	loggingState, err := freeipmi.GetBMCWatchdogLoggingState(result)
 	if err != nil {
-		level.Error(logger).Log("msg", "Failed to collect BMC watchdog logging", "target", targetName(target.host), "error", err)
+		logger.Error("Failed to collect BMC watchdog logging", "target", targetName(target.host), "error", err)
 		return 0, err
 	}
 	currentTimeoutAction, err := freeipmi.GetBMCWatchdogTimeoutAction(result)
 	if err != nil {
-		level.Error(logger).Log("msg", "Failed to collect BMC watchdog timeout action", "target", targetName(target.host), "error", err)
+		logger.Error("Failed to collect BMC watchdog timeout action", "target", targetName(target.host), "error", err)
 		return 0, err
 	}
 	currentPretimeoutInterrupt, err := freeipmi.GetBMCWatchdogPretimeoutInterrupt(result)
 	if err != nil {
-		level.Error(logger).Log("msg", "Failed to collect BMC watchdog pretimeout interrupt", "target", targetName(target.host), "error", err)
+		logger.Error("Failed to collect BMC watchdog pretimeout interrupt", "target", targetName(target.host), "error", err)
 		return 0, err
 	}
 	pretimeoutInterval, err := freeipmi.GetBMCWatchdogPretimeoutInterval(result)
 	if err != nil {
-		level.Error(logger).Log("msg", "Failed to collect BMC watchdog pretimeout interval", "target", targetName(target.host), "error", err)
+		logger.Error("Failed to collect BMC watchdog pretimeout interval", "target", targetName(target.host), "error", err)
 		return 0, err
 	}
 	initialCountdown, err := freeipmi.GetBMCWatchdogInitialCountdown(result)
 	if err != nil {
-		level.Error(logger).Log("msg", "Failed to collect BMC watchdog initial countdown", "target", targetName(target.host), "error", err)
+		logger.Error("Failed to collect BMC watchdog initial countdown", "target", targetName(target.host), "error", err)
 		return 0, err
 	}
 	currentCountdown, err := freeipmi.GetBMCWatchdogCurrentCountdown(result)
 	if err != nil {
-		level.Error(logger).Log("msg", "Failed to collect BMC watchdog current countdown", "target", targetName(target.host), "error", err)
+		logger.Error("Failed to collect BMC watchdog current countdown", "target", targetName(target.host), "error", err)
 		return 0, err
 	}
 

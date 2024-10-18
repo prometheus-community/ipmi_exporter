@@ -20,6 +20,7 @@ import (
 	"encoding/csv"
 	"encoding/hex"
 	"fmt"
+	"log/slog"
 	"math"
 	"os"
 	"os/exec"
@@ -28,9 +29,6 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
-
-	"github.com/go-kit/log"
-	"github.com/go-kit/log/level"
 )
 
 var (
@@ -124,7 +122,7 @@ func getValue(ipmiOutput []byte, regex *regexp.Regexp) (string, error) {
 	return "", fmt.Errorf("could not find value in output: %s", string(ipmiOutput))
 }
 
-func freeipmiConfigPipe(config string, logger log.Logger) (string, error) {
+func freeipmiConfigPipe(config string, logger *slog.Logger) (string, error) {
 	content := []byte(config)
 	pipe, err := pipeName()
 	if err != nil {
@@ -138,24 +136,24 @@ func freeipmiConfigPipe(config string, logger log.Logger) (string, error) {
 	go func(file string, data []byte) {
 		f, err := os.OpenFile(file, os.O_WRONLY|os.O_CREATE|os.O_APPEND, os.ModeNamedPipe)
 		if err != nil {
-			level.Error(logger).Log("msg", "Error opening pipe", "error", err)
+			logger.Error("Error opening pipe", "error", err)
 		}
 		if _, err := f.Write(data); err != nil {
-			level.Error(logger).Log("msg", "Error writing config to pipe", "error", err)
+			logger.Error("Error writing config to pipe", "error", err)
 		}
 		f.Close()
 	}(pipe, content)
 	return pipe, nil
 }
 
-func Execute(cmd string, args []string, config string, target string, logger log.Logger) Result {
+func Execute(cmd string, args []string, config string, target string, logger *slog.Logger) Result {
 	pipe, err := freeipmiConfigPipe(config, logger)
 	if err != nil {
 		return Result{nil, err}
 	}
 	defer func() {
 		if err := os.Remove(pipe); err != nil {
-			level.Error(logger).Log("msg", "Error deleting named pipe", "error", err)
+			logger.Error("Error deleting named pipe", "error", err)
 		}
 	}()
 
@@ -164,7 +162,7 @@ func Execute(cmd string, args []string, config string, target string, logger log
 		args = append(args, "-h", target)
 	}
 
-	level.Debug(logger).Log("msg", "Executing", "command", cmd, "args", fmt.Sprintf("%+v", args))
+	logger.Debug("Executing", "command", cmd, "args", fmt.Sprintf("%+v", args))
 	out, err := exec.Command(cmd, args...).CombinedOutput()
 	if err != nil {
 		err = fmt.Errorf("error running %s: %s", cmd, err)
