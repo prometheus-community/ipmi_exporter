@@ -40,6 +40,10 @@ var (
 		"freeipmi.path",
 		"Path to FreeIPMI executables (default: rely on $PATH).",
 	).String()
+	nativeIPMI = kingpin.Flag(
+		"native-ipmi",
+		"Use native IPMI implementation instead of FreeIPMI (EXPERIMENTAL)",
+	).Bool()
 	webConfig = webflag.AddFlags(kingpin.CommandLine, ":9290")
 
 	sc = &SafeConfig{
@@ -100,6 +104,10 @@ func main() {
 	kingpin.Parse()
 	logger = promslog.New(promslogConfig)
 	logger.Info("Starting ipmi_exporter", "version", version.Info())
+	if *nativeIPMI {
+		logger.Info("Using Go-native IPMI implementation - this is currently EXPERIMENTAL")
+		logger.Info("Make sure to read https://github.com/prometheus-community/ipmi_exporter/blob/master/docs/native.md")
+	}
 
 	// Bail early if the config is bad.
 	if err := sc.ReloadConfig(*configFile); err != nil {
