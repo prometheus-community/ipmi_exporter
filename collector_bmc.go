@@ -73,7 +73,7 @@ func (c BMCCollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metri
 		bmcInfoDesc,
 		prometheus.GaugeValue,
 		1,
-		firmwareRevision, manufacturerID, systemFirmwareVersion, bmcUrl
+		firmwareRevision, manufacturerID, systemFirmwareVersion, bmcUrl,
 	)
 	return 1, nil
 }
