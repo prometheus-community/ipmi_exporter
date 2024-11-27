@@ -43,6 +43,7 @@ var (
 	bmcInfoFirmwareRevisionRegex        = regexp.MustCompile(`^Firmware Revision\s*:\s*(?P<value>[0-9.]*).*`)
 	bmcInfoSystemFirmwareVersionRegex   = regexp.MustCompile(`^System Firmware Version\s*:\s*(?P<value>[0-9.]*).*`)
 	bmcInfoManufacturerIDRegex          = regexp.MustCompile(`^Manufacturer ID\s*:\s*(?P<value>.*)`)
+	bmcInfoBmcUrlRegex                  = regexp.MustCompile(`^BMC URL\s*:\s*(?P<value>.*)`)
 	bmcWatchdogTimerStateRegex          = regexp.MustCompile(`^Timer:\s*(?P<value>Running|Stopped)`)
 	bmcWatchdogTimerUseRegex            = regexp.MustCompile(`^Timer Use:\s*(?P<value>.*)`)
 	bmcWatchdogTimerLoggingRegex        = regexp.MustCompile(`^Logging:\s*(?P<value>Enabled|Disabled)`)
@@ -311,6 +312,13 @@ func GetBMCInfoSystemFirmwareVersion(ipmiOutput Result) (string, error) {
 		return "", fmt.Errorf("%s: %s", ipmiOutput.err, ipmiOutput.output)
 	}
 	return getValue(ipmiOutput.output, bmcInfoSystemFirmwareVersionRegex)
+}
+
+func GetBMCInfoBmcUrl(ipmiOutput Result) (string, error) {
+	if ipmiOutput.err != nil {
+		return "", fmt.Errorf("%s: %s", ipmiOutput.err, ipmiOutput.output)
+	}
+	return getValue(ipmiOutput.output, bmcInfoBmcUrlRegex)
 }
 
 func GetSELInfoEntriesCount(ipmiOutput Result) (float64, error) {
