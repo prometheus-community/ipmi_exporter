@@ -67,7 +67,7 @@ func (c BMCCollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metri
 	if err != nil {
 		// This one is not always available.
 		logger.Debug("Failed to parse bmc-info data", "target", targetName(target.host), "error", err)
-		systemFirmwareVersion = "N/A"
+		bmcUrl = "N/A"
 	}
 	ch <- prometheus.MustNewConstMetric(
 		bmcInfoDesc,
