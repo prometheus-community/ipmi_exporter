@@ -30,7 +30,7 @@ var (
 	selEventsCountByStateDesc = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "sel_events", "count_by_state"),
 		"Current number of log entries in the SEL by state.",
-		[]string{"state"},
+		[]string{"state", "type"},
 		nil,
 	)
 	selEventsCountByNameDesc = prometheus.NewDesc(
@@ -45,9 +45,27 @@ var (
 		[]string{"name"},
 		nil,
 	)
+	selEventsLog = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "sel_events", "time"),
+		"Latest timestamp of custom log entries in the SEL by event.",
+		[]string{"name", "type", "state", "event"},
+		nil,
+	)
 )
 
 type SELEventsCollector struct{}
+
+type stateCountKey struct {
+	State string
+	Type  string
+}
+
+type eventTimeKey struct {
+	State string
+	Type  string
+	Name  string
+	Event string
+}
 
 func (c SELEventsCollector) Name() CollectorName {
 	return SELEventsCollectorName
@@ -78,7 +96,8 @@ func (c SELEventsCollector) Collect(result freeipmi.Result, ch chan<- prometheus
 		return 0, err
 	}
 
-	selEventByStateCount := map[string]float64{}
+	selEventByStateCount := map[stateCountKey]float64{}
+	seleventTime := map[eventTimeKey]float64{}
 	selEventByNameCount := map[string]float64{}
 	selEventByNameTimestamp := map[string]float64{}
 
@@ -89,48 +108,60 @@ func (c SELEventsCollector) Collect(result freeipmi.Result, ch chan<- prometheus
 	}
 
 	for _, data := range events {
+		var newTimestamp float64 = 0
+		datetime := data.Date + " " + data.Time
+		t, err := time.Parse(SELDateTimeFormat, datetime)
+		// ignore errors with invalid date or time
+		// NOTE: in some cases ipmi-sel can return "PostInit" in Date and Time fields
+		// Example:
+		// $ ipmi-sel --comma-separated-output --output-event-state --interpret-oem-data --output-oem-event-strings
+		// ID,Date,Time,Name,Type,State,Event
+		// 3,PostInit,PostInit,Sensor #211,Memory,Warning,Correctable memory error ; Event Data3 = 34h
+		if err != nil {
+			logger.Debug("Failed to parse time", "target", targetName(target.host), "error", err)
+		} else {
+			newTimestamp = float64(t.Unix())
+		}
 		for _, metricConfig := range selEventConfigs {
 			match := metricConfig.Regex.FindStringSubmatch(data.Event)
 			if match != nil {
-				var newTimestamp float64 = 0
-				datetime := data.Date + " " + data.Time
-				t, err := time.Parse(SELDateTimeFormat, datetime)
-				// ignore errors with invalid date or time
-				// NOTE: in some cases ipmi-sel can return "PostInit" in Date and Time fields
-				// Example:
-				// $ ipmi-sel --comma-separated-output --output-event-state --interpret-oem-data --output-oem-event-strings
-				// ID,Date,Time,Name,Type,State,Event
-				// 3,PostInit,PostInit,Sensor #211,Memory,Warning,Correctable memory error ; Event Data3 = 34h
-				if err != nil {
-					logger.Debug("Failed to parse time", "target", targetName(target.host), "error", err)
-				} else {
-					newTimestamp = float64(t.Unix())
-				}
 				// save latest timestamp by name metrics
 				if newTimestamp > selEventByNameTimestamp[metricConfig.Name] {
 					selEventByNameTimestamp[metricConfig.Name] = newTimestamp
 				}
-				// save count by name metrics
 				selEventByNameCount[metricConfig.Name]++
 			}
 		}
-		// save count by state metrics
-		_, ok := selEventByStateCount[data.State]
-		if !ok {
-			selEventByStateCount[data.State] = 0
+		// save event metrics
+		stateeventTimeKey := eventTimeKey{State: data.State, Type: data.Type, Event: data.Event, Name: data.Name}
+		oldTimestamp, okLog := seleventTime[stateeventTimeKey]
+		if !okLog || oldTimestamp < newTimestamp {
+			seleventTime[stateeventTimeKey] = newTimestamp
 		}
-		selEventByStateCount[data.State]++
+		// save count by state metrics
+		stateCountKey := stateCountKey{State: data.State, Type: data.Type}
+		_, ok := selEventByStateCount[stateCountKey]
+		if !ok {
+			selEventByStateCount[stateCountKey] = 0
+		}
+		selEventByStateCount[stateCountKey]++
 	}
-
-	for state, value := range selEventByStateCount {
+	for stateCount, value := range selEventByStateCount {
 		ch <- prometheus.MustNewConstMetric(
 			selEventsCountByStateDesc,
 			prometheus.GaugeValue,
 			value,
-			state,
+			stateCount.State, stateCount.Type,
 		)
 	}
-
+	for eventTime, value := range seleventTime {
+		ch <- prometheus.MustNewConstMetric(
+			selEventsLog,
+			prometheus.GaugeValue,
+			value,
+			eventTime.Name, eventTime.Type, eventTime.State, eventTime.Event,
+		)
+	}
 	for name, value := range selEventByNameCount {
 		ch <- prometheus.MustNewConstMetric(
 			selEventsCountByNameDesc,
