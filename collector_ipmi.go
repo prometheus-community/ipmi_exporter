@@ -132,7 +132,7 @@ func (c IPMICollector) Cmd() string {
 
 func (c IPMICollector) Args() []string {
 	return []string{
-		"-Q",
+		"--quiet-cache",
 		"--ignore-unrecognized-events",
 		"--comma-separated-output",
 		"--no-header-output",

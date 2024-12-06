@@ -59,7 +59,7 @@ func (c SELEventsCollector) Cmd() string {
 
 func (c SELEventsCollector) Args() []string {
 	return []string{
-		"-Q",
+		"--quiet-cache",
 		"--comma-separated-output",
 		"--no-header-output",
 		"--sdr-cache-recreate",
