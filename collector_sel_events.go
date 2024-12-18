@@ -154,10 +154,9 @@ func (c SELEventsCollector) Collect(result freeipmi.Result, ch chan<- prometheus
 
 	log, err := freeipmi.GetStringSELEvents(result)
 	if err != nil {
-		level.Error(logger).Log("msg", "Failed to collect SEL events logs", "target", targetName(target.host), "error", err)
+		logger.Error("Failed to collect SEL events logs", "target", targetName(target.host), "error", err)
 		return 0, err
 	}
-	level.Info(logger).Log(log)
 
 	ch <- prometheus.MustNewConstMetric(
 		selEventsLog,
