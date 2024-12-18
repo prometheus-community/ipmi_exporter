@@ -1,7 +1,9 @@
 # Configuration file for ipmi_exporter
 
 # This is an example config for scraping the local host.
-# In most cases, this should work without using a config file at all.
+# In most cases, this should work without using a config file at all, but here
+# are some examples of things that can be customized. If you require privilege
+# elevation to get the local metrics, see the `ipmi_local_sudo.yml` example.
 modules:
   default:
     # Available collectors are bmc, bmc-watchdog, ipmi, chassis, dcmi, sel, sel-events and sm-lan-mode

@@ -27,7 +27,9 @@ RUN make
 RUN mv ipmi_exporter /
 
 #Copy the ipmi_expoter binary
-FROM alpine:3
+ARG ARCH="amd64"
+ARG OS="linux"
+FROM --platform=${OS}/${ARCH} alpine:3
 RUN apk --no-cache add freeipmi
 LABEL maintainer="The Prometheus Authors <prometheus-developers@googlegroups.com>"
 WORKDIR /

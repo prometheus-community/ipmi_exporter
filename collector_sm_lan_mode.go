@@ -17,7 +17,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/prometheus-community/ipmi_exporter/freeipmi"
@@ -53,11 +52,11 @@ func (c SMLANModeCollector) Args() []string {
 func (c SMLANModeCollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	octets, err := freeipmi.GetRawOctets(result)
 	if err != nil {
-		level.Error(logger).Log("msg", "Failed to collect LAN mode data", "target", targetName(target.host), "error", err)
+		logger.Error("Failed to collect LAN mode data", "target", targetName(target.host), "error", err)
 		return 0, err
 	}
 	if len(octets) != 3 {
-		level.Error(logger).Log("msg", "Unexpected number of octets", "target", targetName(target.host), "octets", octets)
+		logger.Error("Unexpected number of octets", "target", targetName(target.host), "octets", octets)
 		return 0, fmt.Errorf("unexpected number of octets in raw response: %d", len(octets))
 	}
 
@@ -66,7 +65,7 @@ func (c SMLANModeCollector) Collect(result freeipmi.Result, ch chan<- prometheus
 		value, _ := strconv.Atoi(octets[2])
 		ch <- prometheus.MustNewConstMetric(lanModeDesc, prometheus.GaugeValue, float64(value))
 	default:
-		level.Error(logger).Log("msg", "Unexpected lan mode status (ipmi-raw)", "target", targetName(target.host), "sgatus", octets[2])
+		logger.Error("Unexpected lan mode status (ipmi-raw)", "target", targetName(target.host), "sgatus", octets[2])
 		return 0, fmt.Errorf("unexpected lan mode status: %s", octets[2])
 	}
 

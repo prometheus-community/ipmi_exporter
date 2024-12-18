@@ -1,17 +1,20 @@
 # Configuration
 
 Simply scraping the standard `/metrics` endpoint will make the exporter emit
-local IPMI metrics. No special configuration is required.
+local IPMI metrics. If the exporter is running with sufficient privileges, no
+special configuration is required. See the [privileges document](privileges.md)
+for more details.
 
-For remote metrics, the general configuration pattern is similar to that of the
-[blackbox exporter](https://github.com/prometheus/blackbox_exporter), i.e.
-Prometheus scrapes a small number (possibly one) of IPMI exporters with a
-`target` and `module` URL parameter to tell the exporter which IPMI device it
-should use to retrieve the IPMI metrics. We offer this approach as IPMI devices
-often provide useful information even while the supervised host is turned off.
-If you are running the exporter on a separate host anyway, it makes more sense
-to have only a few of them, each probing many (possibly thousands of) IPMI
-devices, rather than one exporter per IPMI device.
+For remote metrics, the general configuration pattern is that of a
+[multi-target exporter][multi-target]. Please read that guide to get the general
+idea about this approach.
+
+[multi-target]: https://prometheus.io/docs/guides/multi-target-exporter/ "Understanding and using the multi-target exporter pattern - Prometheus docs"
+
+We offer this approach as IPMI devices often provide useful information even
+while the supervised host is turned off. Also, you can have a single exporter
+instance probing many (possibly thousands of) IPMI devices, rather than one
+exporter per IPMI device.
 
 **NOTE:** If you are using remote metrics, but still want to get the local
 process metrics from the instance, you must use a `default` module with an
@@ -83,7 +86,7 @@ Create a YAML file that contains a list of targets, e.g.:
     job: ipmi_exporter
 ```
 
-This file needs to be stored on the Prometheus server host.  Assuming that this
+This file needs to be stored on the Prometheus server host. Assuming that this
 file is called `/srv/ipmi_exporter/targets.yml`, and the IPMI exporter is
 running on a host that has the DNS name `ipmi-exporter.internal.example.com`,
 add the following to your Prometheus config:

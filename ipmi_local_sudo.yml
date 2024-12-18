@@ -1,0 +1,32 @@
+# Configuration file for ipmi_exporter
+
+# This is an example config for scraping the local host, using `sudo` to
+# elevate privileges for access to the IPMI interface.
+modules:
+  default:
+    # Available collectors are bmc, bmc-watchdog, ipmi, chassis, dcmi, sel, sel-events and sm-lan-mode
+    collectors:
+      - ipmi
+      - sel
+    # Got any sensors you don't care about? Add them here.
+    exclude_sensor_ids:
+      - 2
+      - 29
+      - 32
+    # Define custom metrics for SEL entries
+    sel_events:
+      - name: correctable_memory_error
+        regex: Correctable memory error.*
+    # USING ANY OF THE BELOW VOIDS YOUR WARRANTY! YOU MAY GET BITTEN BY SHARKS!
+    # You can override the command to be executed for a collector. Paired with
+    # custom_args, this can be used to e.g. execute the IPMI tools with sudo.
+    # Must be added for every enabled collector. Adapt the path to match your
+    # distro, and read `docs/privileges.md`!
+    collector_cmd:
+      ipmi: /usr/bin/sudo
+      sel: /usr/bin/sudo
+    custom_args:
+      ipmi:
+      - "/usr/sbin/ipmimonitoring"
+      sel:
+      - "/usr/sbin/ipmi-sel"

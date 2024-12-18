@@ -9,9 +9,12 @@ This is an IPMI exporter for [Prometheus][prometheus].
 
 It supports both the regular `/metrics` endpoint, exposing metrics from the
 host that the exporter is running on, as well as an `/ipmi` endpoint that
-supports IPMI over RMCP - one exporter running on one host can be used to
-monitor a large number of IPMI interfaces by passing the `target` parameter to
-a scrape.
+supports IPMI over RMCP, implementing the multi-target exporter pattern. If you
+plan to use the latter, please read the guide [Understanding and using the
+multi-target exporter pattern][multi-target] to get the general idea about the
+configuration.
+
+[multi-target]: https://prometheus.io/docs/guides/multi-target-exporter/
 
 The exporter relies on tools from the [FreeIPMI][freeipmi] suite for the actual
 IPMI implementation.
@@ -28,6 +31,12 @@ For Kubernets, you can use the community-maintained [Helm chart][helm].
 
 [helm]: https://github.com/prometheus-community/helm-charts/tree/main/charts/prometheus-ipmi-exporter "IPMI exporter Helm chart in the helm-charts Github repo"
 
+Pre-built container images are available on [dockerhub][dockerhub] and
+[quay.io][quay.io].
+
+[dockerhub]: https://hub.docker.com/r/prometheuscommunity/ipmi-exporter
+[quay.io]: https://quay.io/repository/prometheuscommunity/ipmi-exporter
+
 ### Building from source
 
 You need a Go development environment. Then, simply run `make` to build the
@@ -40,22 +49,15 @@ This uses the common prometheus tooling to build and run some tests.
 Alternatively, you can use the standard Go tooling, which will install the
 executable in `$GOPATH/bin`:
 
-    go get github.com/prometheus-community/ipmi_exporter
+    go install github.com/prometheus-community/ipmi_exporter@latest
 
-### Building a Docker container
+### Building a container image
 
-You can build a Docker container with the included `docker` make target:
+You can build a container image with the included `docker` make target:
 
     make promu
-    promu crossbuild -p linux/amd64
+    promu crossbuild -p linux/amd64 -p linux/arm64
     make docker
-
-This will not even require Go tooling on the host. See the included [docker
-compose example](docker-compose.yml) for how to use the resulting container.
-
-### Building a RPM Package
-
-See [how to build a RPM package](contrib/rpm/README.md).
 
 ## Running
 
@@ -83,44 +85,12 @@ installed:
  - `ipmi-sel`
  - `ipmi-chassis`
 
-### Running as unprivileged user
+When running a container image, make sure to:
 
-If you are running the exporter as unprivileged user, but need to execute the
-FreeIPMI tools as root, you can do the following:
+ - set `config.file` to where the config file is mounted
+ - expose the default port (9290) or set `web.listen-address` accordingly
 
-  1. Add sudoers files to permit the following commands
-     ```
-     ipmi-exporter ALL = NOPASSWD: /usr/sbin/ipmimonitoring,\
-                                   /usr/sbin/ipmi-sensors,\
-                                   /usr/sbin/ipmi-dcmi,\
-                                   /usr/sbin/ipmi-raw,\
-                                   /usr/sbin/bmc-info,\
-                                   /usr/sbin/ipmi-chassis,\
-                                   /usr/sbin/ipmi-sel
-     ```
-  2. In your module config, override the collector command with `sudo` for
-     every collector you are using and add the actual command as custom
-     argument. Example for the "ipmi" collector:
-     ```yaml
-     collector_cmd:
-       ipmi: sudo
-     custom_args:
-       ipmi:
-       - "ipmimonitoring"
-     ```
-     See the last module in the [example config](ipmi_remote.yml).
-
-### Running in Docker
-
-**NOTE:** you should only use Docker for remote metrics.
-
-See [Building a Docker container](#building-a-docker-container) and the example
-`docker-compose.yml`. Edit the `ipmi_remote.yml` file to configure IPMI
-credentials, then run with:
-
-    sudo docker-compose up -d
-
-By default, the server will bind on `0.0.0.0:9290`.
+**NOTE:** you should only use containers for collecting remote metrics.
 
 ## Configuration
 
@@ -142,3 +112,9 @@ using the `--web.config.file` parameter. The format of the file is described
 
 For a description of the metrics that this exporter provides, see the
 [metrics](docs/metrics.md) document.
+
+## Privileges
+
+Collecting host-local IPMI metrics requires root privileges. See
+[privileges](docs/privileges.md) document for how to avoid running the exporter
+as root.
