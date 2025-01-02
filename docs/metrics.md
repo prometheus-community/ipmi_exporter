@@ -129,10 +129,31 @@ last occurrence. Example:
     ipmi_sel_events_count_by_name{name="my_custom_event_from_config"} 77
     ipmi_sel_events_latest_timestamp{name="my_custom_event_from_config"} 1.703613275e+09
 
-also next aggregated metrics will be exported:
+Next aggregated metrics will be exported:
 
-    ipmi_sel_events_count_by_state{state="Nominal"} 10
-    ipmi_sel_events_count_by_state{state="Warning"} 5
+    ipmi_sel_events_count_by_state{type="Drive Slot",state="Critical"} 1
+    ipmi_sel_events_count_by_state{type="Event Logging Disabled",state="Nominal"} 1
+    ipmi_sel_events_count_by_state{type="Physical Security",state="Critical"} 2
+    ipmi_sel_events_count_by_state{type="Power Supply",state="Critical"} 18
+    ipmi_sel_events_count_by_state{type="Power Supply",state="Nominal"} 4
+    ipmi_sel_events_count_by_state{type="Power Supply",state="Warning"} 2
+    ipmi_sel_events_count_by_state{type="Voltage",state="Nominal"} 2
+    ipmi_sel_events_count_by_state{type="Voltage",state="Warning"} 4
+
+Next log events will be exported:
+
+    ipmi_sel_events_time{event="Drive Fault ; OEM Event Data2 code = 01h ; OEM Event Data3 code = 03h",name="System Board Drive 0",state="Critical",type="Drive Slot"} 1.733305672e+09
+    ipmi_sel_events_time{event="Fully Redundant",name="System Board PS Redundancy",state="Nominal",type="Power Supply"} 1.727789882e+09
+    ipmi_sel_events_time{event="General Chassis Intrusion ; Intrusion while system Off",name="System Board Intrusion",state="Critical",type="Physical Security"} 1.722868317e+09
+    ipmi_sel_events_time{event="Log Area Reset/Cleared",name="SEL",state="Nominal",type="Event Logging Disabled"} 1.709312411e+09
+    ipmi_sel_events_time{event="Power Supply Failure detected",name="Power Supply 2 Status",state="Critical",type="Power Supply"} 1.731064451e+09
+    ipmi_sel_events_time{event="Power Supply Failure detected ; Fan Fault",name="Power Supply 2 Status",state="Critical",type="Power Supply"} 1.731064449e+09
+    ipmi_sel_events_time{event="Power Supply input lost (AC/DC)",name="Power Supply 2 Status",state="Critical",type="Power Supply"} 1.727789819e+09
+    ipmi_sel_events_time{event="Power Supply input lost (AC/DC)",name="Power Supply 2 Status",state="Warning",type="Power Supply"} 1.727789882e+09
+    ipmi_sel_events_time{event="Presence detected",name="Power Supply 2 Status",state="Nominal",type="Power Supply"} 1.727789864e+09
+    ipmi_sel_events_time{event="Redundancy Lost",name="System Board PS Redundancy",state="Critical",type="Power Supply"} 1.731064452e+09
+    ipmi_sel_events_time{event="State Asserted",name="System Board PS2 PG FAIL",state="Warning",type="Voltage"} 1.731064449e+09
+    ipmi_sel_events_time{event="State Deasserted",name="System Board PS2 PG FAIL",state="Nominal",type="Voltage"} 1.727789879e+09
 
 ## Supermicro LAN mode setting
 
