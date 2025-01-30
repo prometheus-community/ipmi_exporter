@@ -1,6 +1,7 @@
 ---
 linters:
   enable:
+    - misspell
     - sloglint
 
 issues:
