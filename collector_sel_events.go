@@ -88,11 +88,12 @@ func (c SELEventsCollector) Collect(result freeipmi.Result, ch chan<- prometheus
 		selEventByNameCount[metricConfig.Name] = 0
 	}
 
+	var newTimestamp float64
 	for _, data := range events {
 		for _, metricConfig := range selEventConfigs {
 			match := metricConfig.Regex.FindStringSubmatch(data.Event)
 			if match != nil {
-				var newTimestamp float64 = 0
+				newTimestamp = 0.0
 				datetime := data.Date + " " + data.Time
 				t, err := time.Parse(SELDateTimeFormat, datetime)
 				// ignore errors with invalid date or time
