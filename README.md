@@ -16,10 +16,15 @@ configuration.
 
 [multi-target]: https://prometheus.io/docs/guides/multi-target-exporter/
 
-The exporter relies on tools from the [FreeIPMI][freeipmi] suite for the actual
-IPMI implementation.
+By default, the exporter relies on tools from the [FreeIPMI][freeipmi] suite
+for the actual IPMI implementation.
 
 [freeipmi]: https://www.gnu.org/software/freeipmi/ "FreeIPMI homepage"
+
+There is, however, experimental support for using the Go-native [go-ipmi
+library](https://github.com/bougou/go-ipmi/) instead of FreeIPMI. Feedback to
+help mature this support would be greatly appreciated. Please read the [native
+IPMI documentation](docs/native.md) if you are interested.
 
 ## Installation
 
