@@ -62,7 +62,7 @@ var (
 )
 
 // Describe implements Prometheus.Collector.
-func (c metaCollector) Describe(ch chan<- *prometheus.Desc) {
+func (c metaCollector) Describe(_ chan<- *prometheus.Desc) {
 	// all metrics are described ad-hoc
 }
 

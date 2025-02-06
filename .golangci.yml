@@ -2,6 +2,7 @@
 linters:
   enable:
     - misspell
+    - revive
     - sloglint
 
 issues:

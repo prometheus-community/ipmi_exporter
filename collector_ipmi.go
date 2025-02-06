@@ -143,9 +143,9 @@ func (c IPMICollector) Args() []string {
 }
 
 func (c IPMICollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
-	excludeIds := target.config.ExcludeSensorIDs
+	excludeIDs := target.config.ExcludeSensorIDs
 	targetHost := targetName(target.host)
-	results, err := freeipmi.GetSensorData(result, excludeIds)
+	results, err := freeipmi.GetSensorData(result, excludeIDs)
 	if err != nil {
 		logger.Error("Failed to collect sensor data", "target", targetHost, "error", err)
 		return 0, err
