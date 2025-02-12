@@ -1,5 +1,14 @@
 # Exported metrics
 
+## Exporter meta data
+
+- `ipmi_exporter_build_info`: standard build meta data provided by the
+  Prometheus `client_golang` package
+
+A metric with a constant '1' value labeled by version, revision, branch,
+goversion from which the exporter was built, and the goos and goarch for the
+build.
+
 ## Scrape meta data
 
 These metrics provide data about the scrape itself:
