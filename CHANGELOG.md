@@ -1,5 +1,14 @@
 ## next
 
+## 1.10.0 / 2025-02-12
+
+* Adopt slog, drop go-kit/log (#210)
+* Add bmc url (#219)
+* Use long option for quiet cache (#224)
+* Support for Go-native IPMI (#237)
+* Add version collector metric (#240)
+* Various dependency updates and CI improvements
+
 ## 1.9.0 / 2024-10-17
 
 * Bring back aarch64 builds (#186)
