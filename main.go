@@ -23,6 +23,7 @@ import (
 
 	kingpin "github.com/alecthomas/kingpin/v2"
 	"github.com/prometheus/client_golang/prometheus"
+	versioncollector "github.com/prometheus/client_golang/prometheus/collectors/version"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/promslog"
 	"github.com/prometheus/common/promslog/flag"
@@ -128,6 +129,7 @@ func main() {
 		}
 	}()
 
+	prometheus.MustRegister(versioncollector.NewCollector("ipmi_exporter"))
 	localCollector := metaCollector{target: targetLocal, module: "default", config: sc}
 	prometheus.MustRegister(&localCollector)
 
