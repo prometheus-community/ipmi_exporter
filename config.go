@@ -202,8 +202,9 @@ func (c IPMIConfig) GetCollectors() []collector {
 	return result
 }
 
-func (c IPMIConfig) GetFreeipmiConfig() string {
+func (c IPMIConfig) GetFreeipmiConfig(target ipmiTarget) string {
 	var b strings.Builder
+
 	if c.Driver != "" {
 		fmt.Fprintf(&b, "driver-type %s\n", c.Driver)
 	}

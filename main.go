@@ -23,6 +23,7 @@ import (
 	kingpin "github.com/alecthomas/kingpin/v2"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
+	"github.com/prometheus-community/ipmi_exporter/vault"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/promlog"
@@ -41,6 +42,7 @@ var (
 		"freeipmi.path",
 		"Path to FreeIPMI executables (default: rely on $PATH).",
 	).String()
+
 	webConfig = webflag.AddFlags(kingpin.CommandLine, ":9290")
 
 	sc = &SafeConfig{
@@ -49,6 +51,9 @@ var (
 	reloadCh chan chan error
 
 	logger log.Logger
+
+	VaultClient vault.VaultClient
+	VaultType   string
 )
 
 func remoteIPMIHandler(w http.ResponseWriter, r *http.Request) {
@@ -94,11 +99,13 @@ func updateConfiguration(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	promlogConfig := &promlog.Config{}
+	vaultType := vault.AddFlags()
 	flag.AddFlags(kingpin.CommandLine, promlogConfig)
 	kingpin.CommandLine.UsageWriter(os.Stdout)
 	kingpin.HelpFlag.Short('h')
 	kingpin.Version(version.Print("ipmi_exporter"))
 	kingpin.Parse()
+	VaultType = *vaultType
 	logger = promlog.New(promlogConfig)
 	level.Info(logger).Log("msg", "Starting ipmi_exporter", "version", version.Info())
 
@@ -106,6 +113,13 @@ func main() {
 	if err := sc.ReloadConfig(*configFile); err != nil {
 		level.Error(logger).Log("msg", "Error parsing config file", "error", err)
 		os.Exit(1)
+	}
+	if VaultType != "" {
+		vaultClient, err := vault.NewVaultClient(VaultType)
+		VaultClient = vaultClient
+		if err != nil {
+			level.Error(logger).Log("msg", "Error Creating a Vault Client", "error", err)
+		}
 	}
 
 	hup := make(chan os.Signal, 1)

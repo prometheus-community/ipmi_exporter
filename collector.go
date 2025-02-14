@@ -14,6 +14,7 @@
 package main
 
 import (
+	"os"
 	"path"
 	"time"
 
@@ -90,6 +91,21 @@ func (c metaCollector) Collect(ch chan<- prometheus.Metric) {
 	}()
 
 	config := c.config.ConfigForTarget(c.target, c.module)
+
+	if VaultType != "" {
+		username, password, err := VaultClient.GetCredentials(c.target)
+		if err != nil {
+			level.Error(logger).Log("Error:", err.Error())
+			os.Exit(1)
+		}
+		if username == "" || password == "" {
+			level.Error(logger).Log("Error password or username is empty")
+			os.Exit(1)
+		}
+		config.User = username
+		config.Password = password
+	}
+
 	target := ipmiTarget{
 		host:   c.target,
 		config: config,
@@ -104,7 +120,7 @@ func (c metaCollector) Collect(ch chan<- prometheus.Metric) {
 			fqcmd = path.Join(*executablesPath, collector.Cmd())
 		}
 		args := collector.Args()
-		cfg := config.GetFreeipmiConfig()
+		cfg := config.GetFreeipmiConfig(target)
 
 		result := freeipmi.Execute(fqcmd, args, cfg, target.host, logger)
 
