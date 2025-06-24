@@ -130,7 +130,7 @@ func targetName(target string) string {
 	return target
 }
 
-func NewNativeClient(target ipmiTarget) (*ipmi.Client, error) {
+func NewNativeClient(ctx context.Context, target ipmiTarget) (*ipmi.Client, error) {
 	var client *ipmi.Client
 	var err error
 
@@ -164,9 +164,15 @@ func NewNativeClient(target ipmiTarget) (*ipmi.Client, error) {
 		client = client.WithMaxPrivilegeLevel(priv)
 	}
 	// TODO workaround-flags not used in native client
-	if err := client.Connect(context.TODO()); err != nil {
+	if err := client.Connect(ctx); err != nil {
 		logger.Error("Error connecting to IPMI device", "target", target.host, "error", err)
 		return nil, err
 	}
 	return client, nil
+}
+
+func CloseNativeClient(ctx context.Context, client *ipmi.Client) {
+	if closeErr := client.Close(ctx); closeErr != nil {
+		logger.Warn("Failed to close IPMI client", "target", client.Host, "error", closeErr)
+	}
 }

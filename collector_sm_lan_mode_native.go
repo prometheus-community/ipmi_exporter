@@ -48,15 +48,17 @@ func (c SMLANModeNativeCollector) Args() []string {
 }
 
 func (c SMLANModeNativeCollector) Collect(_ freeipmi.Result, ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
-	client, err := NewNativeClient(target)
+	ctx := context.TODO()
+	client, err := NewNativeClient(ctx, target)
 	if err != nil {
 		return 0, err
 	}
-	if _, err := client.SetSessionPrivilegeLevel(context.TODO(), ipmi.PrivilegeLevelAdministrator); err != nil {
+	defer CloseNativeClient(ctx, client)
+	if _, err := client.SetSessionPrivilegeLevel(ctx, ipmi.PrivilegeLevelAdministrator); err != nil {
 		logger.Error("Failed to set privilege level to admin", "target", targetName(target.host))
 		return 0, fmt.Errorf("failed to set privilege level to admin")
 	}
-	res, err := client.RawCommand(context.TODO(), ipmi.NetFnOEMSupermicroRequest, 0x70, []byte{0x0C, 0x00}, "GetSupermicroLanMode")
+	res, err := client.RawCommand(ctx, ipmi.NetFnOEMSupermicroRequest, 0x70, []byte{0x0C, 0x00}, "GetSupermicroLanMode")
 	if err != nil {
 		logger.Error("raw command failed", "error", err)
 		return 0, err

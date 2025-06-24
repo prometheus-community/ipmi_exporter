@@ -60,11 +60,13 @@ func (c SELEventsNativeCollector) Args() []string {
 func (c SELEventsNativeCollector) Collect(_ freeipmi.Result, ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	selEventConfigs := target.config.SELEvents
 
-	client, err := NewNativeClient(target)
+	ctx := context.TODO()
+	client, err := NewNativeClient(ctx, target)
 	if err != nil {
 		return 0, err
 	}
-	res, err := client.GetSELEntries(context.TODO(), 0)
+	defer CloseNativeClient(ctx, client)
+	res, err := client.GetSELEntries(ctx, 0)
 	if err != nil {
 		return 0, err
 	}

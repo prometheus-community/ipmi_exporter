@@ -95,11 +95,13 @@ func (c BMCWatchdogNativeCollector) Collect(_ freeipmi.Result, ch chan<- prometh
 
 	// TODO this now works remotely
 
-	client, err := NewNativeClient(target)
+	ctx := context.TODO()
+	client, err := NewNativeClient(ctx, target)
 	if err != nil {
 		return 0, err
 	}
-	res, err := client.GetWatchdogTimer(context.TODO())
+	defer CloseNativeClient(ctx, client)
+	res, err := client.GetWatchdogTimer(ctx)
 	if err != nil {
 		return 0, err
 	}
