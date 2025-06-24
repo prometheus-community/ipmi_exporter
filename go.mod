@@ -7,7 +7,7 @@ require (
 	github.com/bougou/go-ipmi v0.7.2
 	github.com/prometheus/client_golang v1.20.5
 	github.com/prometheus/common v0.62.0
-	github.com/prometheus/exporter-toolkit v0.13.2
+	github.com/prometheus/exporter-toolkit v0.14.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
