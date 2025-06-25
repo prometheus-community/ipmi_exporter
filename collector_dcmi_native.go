@@ -46,11 +46,13 @@ func (c DCMINativeCollector) Args() []string {
 }
 
 func (c DCMINativeCollector) Collect(_ freeipmi.Result, ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
-	client, err := NewNativeClient(target)
+	ctx := context.TODO()
+	client, err := NewNativeClient(ctx, target)
 	if err != nil {
 		return 0, err
 	}
-	res, err := client.GetDCMIPowerReading(context.TODO())
+	defer CloseNativeClient(ctx, client)
+	res, err := client.GetDCMIPowerReading(ctx)
 	if err != nil {
 		logger.Error("Failed to collect DCMI data", "target", targetName(target.host), "error", err)
 		return 0, err

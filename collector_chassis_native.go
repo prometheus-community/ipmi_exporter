@@ -58,11 +58,13 @@ func (c ChassisNativeCollector) Args() []string {
 }
 
 func (c ChassisNativeCollector) Collect(_ freeipmi.Result, ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
-	client, err := NewNativeClient(target)
+	ctx := context.TODO()
+	client, err := NewNativeClient(ctx, target)
 	if err != nil {
 		return 0, err
 	}
-	res, err := client.GetChassisStatus(context.TODO())
+	defer CloseNativeClient(ctx, client)
+	res, err := client.GetChassisStatus(ctx)
 	if err != nil {
 		return 0, err
 	}
