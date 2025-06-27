@@ -177,7 +177,13 @@ func (c IPMINativeCollector) Collect(_ freeipmi.Result, ch chan<- prometheus.Met
 		case "N/A":
 			state = math.NaN()
 		default:
-			logger.Error("Unknown sensor state", "target", targetHost, "state", data.Status())
+			// TODO handle threshold sensor data
+			logger.Error(
+				"Unknown sensor state",
+				"target", targetHost,
+				"state", data.Status(),
+				"sensor_id", strconv.FormatInt(int64(data.Number), 10),
+			)
 			state = math.NaN()
 		}
 
