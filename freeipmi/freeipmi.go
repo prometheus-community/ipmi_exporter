@@ -86,7 +86,7 @@ type SELEventData struct {
 // EscapePassword escapes a password so that the result is suitable for usage in a
 // FreeIPMI config file.
 func EscapePassword(password string) string {
-	return strings.Replace(password, "#", "\\#", -1)
+	return strings.ReplaceAll(password, "#", "\\#")
 }
 
 func pipeName() (string, error) {
