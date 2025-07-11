@@ -1,5 +1,12 @@
 ## next
 
+## 1.10.1 / 2025-07-11
+
+* Fix panic in native BMC collector (#267)
+* Fix native IPMI client not being properly closed (#268)
+* Log sensor ID on error in native IPMI collector
+* Dependency/shared files updates and CI improvements
+
 ## 1.10.0 / 2025-02-12
 
 * Adopt slog, drop go-kit/log (#210)
