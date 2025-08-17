@@ -27,10 +27,10 @@ bug.
 1. [Fork the repository][fork].
 2. [Create a topic branch][branch].
 3. Implement your feature or bug fix.
-4. Unlike we did so far, maybe add tests and make sure that they completely
+4. When making code changes, ideally add tests and ensure that they completely
    cover your changes and potential edge cases.
-5. If there are tests now, run `go test`. If your tests fail, revise your code
-   and tests, and rerun `go test` until they pass.
+5. If there are pre-exisdting tests, run `go test`. If tests fail, revise your code
+   and tests, and repeat `go test` until they pass.
 6. Add documentation for your feature or bug fix in the code, documentation, or
    PR/commit message.
 7. Commit and push your changes.
