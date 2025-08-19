@@ -29,7 +29,7 @@ bug.
 3. Implement your feature or bug fix.
 4. When making code changes, ideally add tests and ensure that they completely
    cover your changes and potential edge cases.
-5. If there are pre-exisdting tests, run `go test`. If tests fail, revise your code
+5. If there are pre-existing tests, run `go test`. If tests fail, revise your code
    and tests, and repeat `go test` until they pass.
 6. Add documentation for your feature or bug fix in the code, documentation, or
    PR/commit message.
