@@ -8,11 +8,10 @@ This is an IPMI exporter for [Prometheus][prometheus].
 [prometheus]: https://prometheus.io "Prometheus homepage"
 
 It supports both the regular `/metrics` endpoint, exposing metrics from the
-host that the exporter is running on, as well as an `/ipmi` endpoint that
+host on which the exporter runs, as well as a `/ipmi` endpoint that
 supports IPMI over RMCP, implementing the multi-target exporter pattern. If you
 plan to use the latter, please read the guide [Understanding and using the
-multi-target exporter pattern][multi-target] to get the general idea about the
-configuration.
+multi-target exporter pattern][multi-target] for an overview of that paradigm.
 
 [multi-target]: https://prometheus.io/docs/guides/multi-target-exporter/
 
@@ -32,7 +31,7 @@ For most use-cases, simply download the [the latest release][releases].
 
 [releases]: https://github.com/prometheus-community/ipmi_exporter/releases "IPMI exporter releases on Github"
 
-For Kubernets, you can use the community-maintained [Helm chart][helm].
+For Kubernetes, you can use the community-maintained [Helm chart][helm].
 
 [helm]: https://github.com/prometheus-community/helm-charts/tree/main/charts/prometheus-ipmi-exporter "IPMI exporter Helm chart in the helm-charts Github repo"
 
@@ -49,9 +48,9 @@ executable:
 
     make
 
-This uses the common prometheus tooling to build and run some tests.
+This uses common Prometheus tooling to build the exporter and run tests.
 
-Alternatively, you can use the standard Go tooling, which will install the
+Alternatively, you can use standard Go tooling, which will install the
 executable in `$GOPATH/bin`:
 
     go install github.com/prometheus-community/ipmi_exporter@latest
@@ -80,7 +79,7 @@ For syntax and a complete list of available parameters, run:
 
     ./ipmi_exporter -h
 
-Make sure you have the following tools from the [FreeIPMI][freeipmi] suite
+Ensure that the following tools from the [FreeIPMI][freeipmi] suite are
 installed:
 
  - `ipmimonitoring`/`ipmi-sensors`
@@ -92,16 +91,16 @@ installed:
 
 When running a container image, make sure to:
 
- - set `config.file` to where the config file is mounted
- - expose the default port (9290) or set `web.listen-address` accordingly
+ - set `config.file` to the path of the config file as seen within the container
+ - expose the default TCP port (9290) or set `web.listen-address` accordingly
 
-**NOTE:** you should only use containers for collecting remote metrics.
+**NOTE:** you should use containers only when collecting remote metrics.
 
 ## Configuration
 
 The [configuration](docs/configuration.md) document describes both the
-configuration of the IPMI exporter itself as well as providing some guidance
-for configuring the Prometheus server to scrape it.
+configuration of the IPMI exporter itself as well as
+configuring the Prometheus server to scrape it.
 
 ## TLS and basic authentication
 
