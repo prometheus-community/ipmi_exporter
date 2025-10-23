@@ -13,6 +13,10 @@ supports IPMI over RMCP, implementing the multi-target exporter pattern. If you
 plan to use the latter, please read the guide [Understanding and using the
 multi-target exporter pattern][multi-target] for an overview of that paradigm.
 
+The exporter also provides a `/sd` endpoint for Prometheus HTTP service
+discovery, allowing dynamic discovery of configured modules without maintaining
+static target files.
+
 [multi-target]: https://prometheus.io/docs/guides/multi-target-exporter/
 
 By default, the exporter relies on tools from the [FreeIPMI][freeipmi] suite
@@ -101,6 +105,10 @@ When running a container image, make sure to:
 The [configuration](docs/configuration.md) document describes both the
 configuration of the IPMI exporter itself as well as
 configuring the Prometheus server to scrape it.
+
+For remote metrics, the exporter supports Prometheus HTTP service discovery
+via the `/sd` endpoint, which automatically exposes all configured modules.
+See the configuration documentation for details.
 
 ## TLS and basic authentication
 

@@ -14,6 +14,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -96,6 +97,27 @@ func updateConfiguration(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type httpSDTarget struct {
+	Targets []string `json:"targets"`
+}
+
+func httpSDHandler(w http.ResponseWriter, r *http.Request) {
+	sc.RLock()
+	defer sc.RUnlock()
+
+	var sdTargets []httpSDTarget
+	for module := range sc.C.Modules {
+		sdTargets = append(sdTargets, httpSDTarget{
+			Targets: []string{module},
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(sdTargets); err != nil {
+		logger.Error("Error encoding HTTP SD response", "error", err)
+	}
+}
+
 func main() {
 	promslogConfig := &promslog.Config{}
 	flag.AddFlags(kingpin.CommandLine, promslogConfig)
@@ -144,6 +166,7 @@ func main() {
 	http.Handle("/metrics", promhttp.Handler())       // Regular metrics endpoint for local IPMI metrics.
 	http.HandleFunc("/ipmi", remoteIPMIHandler)       // Endpoint to do IPMI scrapes.
 	http.HandleFunc("/-/reload", updateConfiguration) // Endpoint to reload configuration.
+	http.HandleFunc("/sd", httpSDHandler)             // HTTP service discovery endpoint.
 
 	http.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte(`<html>

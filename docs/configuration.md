@@ -66,10 +66,48 @@ exporter.
 ### Remote metrics
 
 To add your IPMI targets to Prometheus, you can use any of the supported
-service discovery mechanism of your choice. The following example uses the
-file-based SD and should be easy to adjust to other scenarios.
+service discovery mechanism of your choice. The following examples show
+file-based SD and HTTP SD approaches.
 
-Create a YAML file that contains a list of targets, e.g.:
+#### HTTP Service Discovery
+
+The exporter provides a `/sd` endpoint that returns configured modules in
+Prometheus HTTP SD format. This allows dynamic discovery of modules without
+manually maintaining target files.
+
+Add the following to your Prometheus config:
+
+```yaml
+- job_name: ipmi
+  scrape_interval: 1m
+  scrape_timeout: 30s
+  metrics_path: /ipmi
+  scheme: http
+  http_sd_configs:
+  - url: http://ipmi-exporter.internal.example.com:9290/sd
+    refresh_interval: 5m
+  relabel_configs:
+  - source_labels: [__address__]
+    target_label: __param_target
+  - source_labels: [__address__]
+    target_label: __param_module
+  - source_labels: [__address__]
+    target_label: instance
+  - source_labels: [__meta_url]
+    regex: http://([^/]+)/.+
+    target_label: __address__
+    replacement: ${1}
+```
+
+The `/sd` endpoint returns all configured modules from the exporter's config
+file. Each module name becomes a discoverable target. When the exporter's
+configuration is reloaded, Prometheus will automatically pick up the changes
+on the next refresh.
+
+#### File-based Service Discovery
+
+Alternatively, you can use file-based service discovery. Create a YAML file
+that contains a list of targets, e.g.:
 
 ```
 ---
