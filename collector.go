@@ -15,7 +15,10 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"net"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 
@@ -137,7 +140,19 @@ func NewNativeClient(ctx context.Context, target ipmiTarget) (*ipmi.Client, erro
 	if target.host == targetLocal {
 		client, err = ipmi.NewOpenClient()
 	} else {
-		client, err = ipmi.NewClient(target.host, 623, target.config.User, target.config.Password)
+		var (
+			host, port string
+			p          uint64
+		)
+		if host, port, err = net.SplitHostPort(target.host); err != nil {
+			host, port = target.host, "623"
+		}
+		logger.Debug("Connecting to", "host", host, "port", port)
+		p, err = strconv.ParseUint(port, 10, 16)
+		if err != nil {
+			return nil, fmt.Errorf("invalid port '%s': %s", port, err.Error())
+		}
+		client, err = ipmi.NewClient(host, int(p), target.config.User, target.config.Password)
 	}
 	if err != nil {
 		logger.Error("Error creating IPMI client", "target", target.host, "error", err)
