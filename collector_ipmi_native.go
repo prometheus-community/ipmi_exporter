@@ -17,6 +17,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"slices"
 	"strconv"
 
 	"github.com/bougou/go-ipmi"
@@ -138,12 +139,7 @@ func (c IPMINativeCollector) Collect(_ freeipmi.Result, ch chan<- prometheus.Met
 	targetHost := targetName(target.host)
 
 	filter := func(sensor *ipmi.Sensor) bool {
-		for _, id := range excludeIDs {
-			if id == int64(sensor.Number) {
-				return false
-			}
-		}
-		return true
+		return !slices.Contains(excludeIDs, int64(sensor.Number))
 	}
 
 	ctx := context.TODO()

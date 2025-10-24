@@ -7,7 +7,7 @@ executors:
   # also be updated.
   golang:
     docker:
-      - image: cimg/go:1.23
+      - image: cimg/go:1.25
 jobs:
   test:
     executor: golang

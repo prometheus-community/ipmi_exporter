@@ -26,6 +26,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -99,16 +100,11 @@ func pipeName() (string, error) {
 }
 
 func contains(s []int64, elm int64) bool {
-	for _, a := range s {
-		if a == elm {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(s, elm)
 }
 
 func getValue(ipmiOutput []byte, regex *regexp.Regexp) (string, error) {
-	for _, line := range strings.Split(string(ipmiOutput), "\n") {
+	for line := range strings.SplitSeq(string(ipmiOutput), "\n") {
 		match := regex.FindStringSubmatch(line)
 		if match == nil {
 			continue
