@@ -126,7 +126,7 @@ type Config struct {
 	Modules map[string]IPMIConfig `yaml:"modules"`
 
 	// Catches all undefined fields and must be empty after parsing.
-	XXX map[string]interface{} `yaml:",inline"`
+	XXX map[string]any `yaml:",inline"`
 }
 
 // SafeConfig wraps Config for concurrency-safe operations.
@@ -152,7 +152,7 @@ type IPMIConfig struct {
 
 	SELEvents []*IpmiSELEvent `yaml:"sel_events,omitempty"`
 	// Catches all undefined fields and must be empty after parsing.
-	XXX map[string]interface{} `yaml:",inline"`
+	XXX map[string]any `yaml:",inline"`
 }
 
 type IpmiSELEvent struct {
@@ -165,7 +165,7 @@ var defaultConfig = IPMIConfig{
 	Collectors: []CollectorName{IPMICollectorName, DCMICollectorName, BMCCollectorName, ChassisCollectorName},
 }
 
-func checkOverflow(m map[string]interface{}, ctx string) error {
+func checkOverflow(m map[string]any, ctx string) error {
 	if len(m) > 0 {
 		var keys []string
 		for k := range m {
@@ -177,7 +177,7 @@ func checkOverflow(m map[string]interface{}, ctx string) error {
 }
 
 // UnmarshalYAML implements the yaml.Unmarshaler interface.
-func (s *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
+func (s *Config) UnmarshalYAML(unmarshal func(any) error) error {
 	type plain Config
 	if err := unmarshal((*plain)(s)); err != nil {
 		return err
@@ -189,7 +189,7 @@ func (s *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 }
 
 // UnmarshalYAML implements the yaml.Unmarshaler interface.
-func (s *IPMIConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
+func (s *IPMIConfig) UnmarshalYAML(unmarshal func(any) error) error {
 	*s = defaultConfig
 	type plain IPMIConfig
 	if err := unmarshal((*plain)(s)); err != nil {
