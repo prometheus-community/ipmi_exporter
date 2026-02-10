@@ -191,7 +191,6 @@ func (c IPMINativeCollector) Collect(_ freeipmi.Result, ch chan<- prometheus.Met
 			if data.SensorUnit.Percentage {
 				collectTypedSensorNative(ch, fanSpeedRatioNativeDesc, fanSpeedStateNativeDesc, state, data, 0.01)
 			} else {
-
 				collectTypedSensorNative(ch, fanSpeedRPMNativeDesc, fanSpeedStateNativeDesc, state, data, 1.0)
 			}
 		case ipmi.SensorUnitType_DegreesC:
@@ -203,7 +202,9 @@ func (c IPMINativeCollector) Collect(_ freeipmi.Result, ch chan<- prometheus.Met
 		case ipmi.SensorUnitType_Watts:
 			collectTypedSensorNative(ch, powerNativeDesc, powerStateNativeDesc, state, data, 1.0)
 		default:
-			collectGenericSensorNative(ch, state, data)
+			if CollectGenSensorIPMI {
+				collectGenericSensorNative(ch, state, data)
+			}
 		}
 	}
 	return 1, nil

@@ -69,14 +69,18 @@ func (c ConfiguredCollector) Collect(output freeipmi.Result, ch chan<- prometheu
 	return c.collector.Collect(output, ch, target)
 }
 
-func (c CollectorName) GetInstance() (collector, error) {
+func (c CollectorName) GetInstance(s *IPMIConfig) (collector, error) {
 	// This is where a new collector would have to be "registered"
 	switch c {
 	case IPMICollectorName:
+		ipmiCol := IPMICollector{}
+		if s != nil {
+			ipmiCol.EnableCollectorGenSensorIPMI(s.CollectorGenSensorIPMI)
+		}
 		if *nativeIPMI {
 			return IPMINativeCollector{}, nil
 		}
-		return IPMICollector{}, nil
+		return ipmiCol, nil
 	case BMCCollectorName:
 		if *nativeIPMI {
 			return BMCNativeCollector{}, nil
@@ -117,7 +121,7 @@ func (c CollectorName) GetInstance() (collector, error) {
 }
 
 func (c CollectorName) IsValid() error {
-	_, err := c.GetInstance()
+	_, err := c.GetInstance(nil)
 	return err
 }
 
@@ -153,6 +157,9 @@ type IPMIConfig struct {
 	SELEvents []*IpmiSELEvent `yaml:"sel_events,omitempty"`
 	// Catches all undefined fields and must be empty after parsing.
 	XXX map[string]any `yaml:",inline"`
+
+	// Controls whether generic IPMI sensors are exported as metrics. (default: true)
+	CollectorGenSensorIPMI bool `yaml:"collector_gensensor_ipmi"`
 }
 
 type IpmiSELEvent struct {
@@ -162,7 +169,8 @@ type IpmiSELEvent struct {
 }
 
 var defaultConfig = IPMIConfig{
-	Collectors: []CollectorName{IPMICollectorName, DCMICollectorName, BMCCollectorName, ChassisCollectorName},
+	Collectors:             []CollectorName{IPMICollectorName, DCMICollectorName, BMCCollectorName, ChassisCollectorName},
+	CollectorGenSensorIPMI: true,
 }
 
 func checkOverflow(m map[string]any, ctx string) error {
@@ -213,7 +221,7 @@ func (s *IPMIConfig) GetCollectors() []collector {
 	result := []collector{}
 	for _, co := range s.Collectors {
 		// At this point validity has already been checked
-		i, _ := co.GetInstance()
+		i, _ := co.GetInstance(s)
 		cc := ConfiguredCollector{
 			collector:   i,
 			command:     s.CollectorCmd[i.Name()],

@@ -118,6 +118,8 @@ var (
 		[]string{"id", "name"},
 		nil,
 	)
+
+	CollectGenSensorIPMI = true
 )
 
 type IPMICollector struct{}
@@ -140,6 +142,10 @@ func (c IPMICollector) Args() []string {
 		"--output-event-bitmask",
 		"--output-sensor-state",
 	}
+}
+
+func (c IPMICollector) EnableCollectorGenSensorIPMI(enable bool) {
+	CollectGenSensorIPMI = enable
 }
 
 func (c IPMICollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
@@ -188,7 +194,9 @@ func (c IPMICollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metr
 				collectGenericSensor(ch, state, data)
 			}
 		default:
-			collectGenericSensor(ch, state, data)
+			if CollectGenSensorIPMI {
+				collectGenericSensor(ch, state, data)
+			}
 		}
 	}
 	return 1, nil
