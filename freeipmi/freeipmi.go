@@ -53,6 +53,13 @@ var (
 	bmcWatchdogPretimeoutIntervalRegex  = regexp.MustCompile(`^Pre-Timeout Interval:\s*(?P<value>[0-9.]*)\s*seconds.*`)
 	bmcWatchdogInitialCountdownRegex    = regexp.MustCompile(`^Initial Countdown:\s*(?P<value>[0-9.]*)\s*seconds.*`)
 	bmcWatchdogCurrentCountdownRegex    = regexp.MustCompile(`^Current Countdown:\s*(?P<value>[0-9.]*)\s*seconds.*`)
+
+	fruProductNameRegex         = regexp.MustCompile(`^\s*FRU Product Name\s*:\s*(?P<value>.+)`)
+	fruProductSerialRegex       = regexp.MustCompile(`^\s*FRU Product Serial Number\s*:\s*(?P<value>.+)`)
+	fruProductManufacturerRegex = regexp.MustCompile(`^\s*FRU Product Manufacturer Name\s*:\s*(?P<value>.+)`)
+	fruProductPartNumberRegex   = regexp.MustCompile(`^\s*FRU Product Part/Model Number\s*:\s*(?P<value>.+)`)
+	fruBoardProductNameRegex    = regexp.MustCompile(`^\s*FRU Board Product Name\s*:\s*(?P<value>.+)`)
+	fruChassisTypeRegex         = regexp.MustCompile(`^\s*FRU Chassis Type\s*:\s*(?P<value>.+)`)
 )
 
 // Result represents the outcome of a call to one of the FreeIPMI tools.
@@ -472,4 +479,64 @@ func GetSELEvents(ipmiOutput Result) ([]SELEventData, error) {
 		})
 	}
 	return events, nil
+}
+
+func GetFRUProductName(ipmiOutput Result) (string, error) {
+	value, err := getValue(ipmiOutput.output, fruProductNameRegex)
+	if err != nil {
+		if ipmiOutput.err != nil {
+			return "", fmt.Errorf("%s: %s", ipmiOutput.err, ipmiOutput.output)
+		}
+	}
+	return strings.TrimSpace(value), err
+}
+
+func GetFRUProductSerial(ipmiOutput Result) (string, error) {
+	value, err := getValue(ipmiOutput.output, fruProductSerialRegex)
+	if err != nil {
+		if ipmiOutput.err != nil {
+			return "", fmt.Errorf("%s: %s", ipmiOutput.err, ipmiOutput.output)
+		}
+	}
+	return strings.TrimSpace(value), err
+}
+
+func GetFRUProductManufacturer(ipmiOutput Result) (string, error) {
+	value, err := getValue(ipmiOutput.output, fruProductManufacturerRegex)
+	if err != nil {
+		if ipmiOutput.err != nil {
+			return "", fmt.Errorf("%s: %s", ipmiOutput.err, ipmiOutput.output)
+		}
+	}
+	return strings.TrimSpace(value), err
+}
+
+func GetFRUProductPartNumber(ipmiOutput Result) (string, error) {
+	value, err := getValue(ipmiOutput.output, fruProductPartNumberRegex)
+	if err != nil {
+		if ipmiOutput.err != nil {
+			return "", fmt.Errorf("%s: %s", ipmiOutput.err, ipmiOutput.output)
+		}
+	}
+	return strings.TrimSpace(value), err
+}
+
+func GetFRUBoardProductName(ipmiOutput Result) (string, error) {
+	value, err := getValue(ipmiOutput.output, fruBoardProductNameRegex)
+	if err != nil {
+		if ipmiOutput.err != nil {
+			return "", fmt.Errorf("%s: %s", ipmiOutput.err, ipmiOutput.output)
+		}
+	}
+	return strings.TrimSpace(value), err
+}
+
+func GetFRUChassisType(ipmiOutput Result) (string, error) {
+	value, err := getValue(ipmiOutput.output, fruChassisTypeRegex)
+	if err != nil {
+		if ipmiOutput.err != nil {
+			return "", fmt.Errorf("%s: %s", ipmiOutput.err, ipmiOutput.output)
+		}
+	}
+	return strings.TrimSpace(value), err
 }
