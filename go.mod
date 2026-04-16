@@ -1,6 +1,6 @@
 module github.com/prometheus-community/ipmi_exporter
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/alecthomas/kingpin/v2 v2.4.0
@@ -8,7 +8,7 @@ require (
 	github.com/prometheus/client_golang v1.23.2
 	github.com/prometheus/common v0.67.5
 	github.com/prometheus/exporter-toolkit v0.15.1
-	gopkg.in/yaml.v2 v2.4.0
+	go.yaml.in/yaml/v2 v2.4.4
 )
 
 require (
@@ -37,7 +37,6 @@ require (
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.13.1 // indirect
 	github.com/xhit/go-str2duration/v2 v2.1.0 // indirect
-	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	golang.org/x/crypto v0.46.0 // indirect
 	golang.org/x/net v0.48.0 // indirect
 	golang.org/x/oauth2 v0.34.0 // indirect
