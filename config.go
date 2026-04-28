@@ -21,10 +21,9 @@ import (
 	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"go.yaml.in/yaml/v2"
 
 	"github.com/prometheus-community/ipmi_exporter/freeipmi"
-
-	yaml "gopkg.in/yaml.v2"
 )
 
 // CollectorName is used for unmarshaling the list of collectors in the yaml config file
