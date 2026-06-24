@@ -111,6 +111,8 @@ func (c CollectorName) GetInstance() (collector, error) {
 			return SMLANModeNativeCollector{}, nil
 		}
 		return SMLANModeCollector{}, nil
+	case FRUCollectorName:
+		return FRUCollector{}, nil
 	}
 	return nil, fmt.Errorf("invalid collector: %s", string(c))
 }
