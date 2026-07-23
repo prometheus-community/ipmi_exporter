@@ -30,6 +30,8 @@ import (
 	"github.com/prometheus/common/version"
 	"github.com/prometheus/exporter-toolkit/web"
 	webflag "github.com/prometheus/exporter-toolkit/web/kingpinflag"
+
+	"github.com/prometheus-community/ipmi_exporter/freeipmi"
 )
 
 var (
@@ -45,6 +47,12 @@ var (
 		"native-ipmi",
 		"Use native IPMI implementation instead of FreeIPMI (EXPERIMENTAL)",
 	).Bool()
+	freeipmiTimeout = kingpin.Flag(
+		"freeipmi.timeout",
+		"Wall-clock timeout for each freeipmi subprocess. A hung freeipmi tool is "+
+			"killed after this duration so it can never block a scrape forever. "+
+			"0 disables the timeout (upstream behaviour).",
+	).Default("20s").Duration()
 	webConfig = webflag.AddFlags(kingpin.CommandLine, ":9290")
 
 	sc = &SafeConfig{
@@ -105,6 +113,10 @@ func main() {
 	kingpin.Parse()
 	logger = promslog.New(promslogConfig)
 	logger.Info("Starting ipmi_exporter", "version", version.Info())
+	freeipmi.ExecuteTimeout = *freeipmiTimeout
+	if *freeipmiTimeout > 0 {
+		logger.Info("FreeIPMI subprocess timeout enabled", "timeout", freeipmiTimeout.String())
+	}
 	if *nativeIPMI {
 		logger.Info("Using Go-native IPMI implementation - this is currently EXPERIMENTAL")
 		logger.Info("Make sure to read https://github.com/prometheus-community/ipmi_exporter/blob/master/docs/native.md")
