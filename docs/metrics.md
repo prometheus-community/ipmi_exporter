@@ -243,3 +243,7 @@ type is added as label (in addition to name and ID). Example:
 
     ipmi_sensor_state{id="139",name="Power Cable",type="Cable/Interconnect"} 0
     ipmi_sensor_value{id="139",name="Power Cable",type="Cable/Interconnect"} NaN
+
+The state metric can take on three values. 0 means the sensor state is nominal. 1
+means the sensor is considered in `warning` state. Finally, 2 means the sensor is
+in `critical` state.
