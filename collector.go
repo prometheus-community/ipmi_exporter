@@ -115,7 +115,13 @@ func (c metaCollector) Collect(ch chan<- prometheus.Metric) {
 			args := collector.Args()
 			cfg := config.GetFreeipmiConfig()
 
-			result = freeipmi.Execute(fqcmd, args, cfg, target.host, logger)
+			ctx := context.Background()
+			cancel := context.CancelFunc(func() {})
+			if timeout := config.GetCollectorTimeout(); timeout > 0 {
+				ctx, cancel = context.WithTimeout(ctx, timeout)
+			}
+			result = freeipmi.ExecuteContext(ctx, fqcmd, args, cfg, target.host, logger)
+			cancel()
 		}
 
 		up, err := collector.Collect(result, ch, target)
