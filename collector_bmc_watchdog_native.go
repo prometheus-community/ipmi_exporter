@@ -16,6 +16,7 @@ package main
 import (
 	"context"
 
+	"github.com/bougou/go-ipmi"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/prometheus-community/ipmi_exporter/freeipmi"
@@ -70,11 +71,16 @@ var (
 	)
 	bmcWatchdogNativeCurrentCountdownDesc = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "bmc_watchdog", "current_countdown_seconds"),
-		"Watchdog initial countdown in seconds",
+		"Watchdog current countdown in seconds",
 		[]string{},
 		nil,
 	)
 )
+
+// The Get Watchdog Timer response (IPMI v2.0 section 27.7) encodes the initial
+// and present countdown values in 100ms units, unlike the pre-timeout interval,
+// which is in seconds. Convert them before exposing them as _seconds metrics.
+const watchdogCountdownUnitsPerSecond = 10
 
 type BMCWatchdogNativeCollector struct{}
 
@@ -106,6 +112,11 @@ func (c BMCWatchdogNativeCollector) Collect(_ freeipmi.Result, ch chan<- prometh
 		return 0, err
 	}
 
+	collectWatchdogTimerNative(ch, res)
+	return 1, nil
+}
+
+func collectWatchdogTimerNative(ch chan<- prometheus.Metric, res *ipmi.GetWatchdogTimerResponse) {
 	ch <- prometheus.MustNewConstMetric(bmcWatchdogNativeTimerDesc, prometheus.GaugeValue, boolToFloat(res.TimerIsStarted))
 	for _, timerUse := range watchdogNativeTimerUses {
 		if res.TimerUse.String() == timerUse {
@@ -130,7 +141,6 @@ func (c BMCWatchdogNativeCollector) Collect(_ freeipmi.Result, ch chan<- prometh
 		}
 	}
 	ch <- prometheus.MustNewConstMetric(bmcWatchdogNativePretimeoutIntervalDesc, prometheus.GaugeValue, float64(res.PreTimeoutIntervalSec))
-	ch <- prometheus.MustNewConstMetric(bmcWatchdogNativeInitialCountdownDesc, prometheus.GaugeValue, float64(res.InitialCountdown))
-	ch <- prometheus.MustNewConstMetric(bmcWatchdogNativeCurrentCountdownDesc, prometheus.GaugeValue, float64(res.PresentCountdown))
-	return 1, nil
+	ch <- prometheus.MustNewConstMetric(bmcWatchdogNativeInitialCountdownDesc, prometheus.GaugeValue, float64(res.InitialCountdown)/watchdogCountdownUnitsPerSecond)
+	ch <- prometheus.MustNewConstMetric(bmcWatchdogNativeCurrentCountdownDesc, prometheus.GaugeValue, float64(res.PresentCountdown)/watchdogCountdownUnitsPerSecond)
 }
