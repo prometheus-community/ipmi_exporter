@@ -228,20 +228,25 @@ func collectTypedSensor(ch chan<- prometheus.Metric, desc, stateDesc *prometheus
 }
 
 func collectGenericSensor(ch chan<- prometheus.Metric, state float64, data freeipmi.SensorData) {
-	ch <- prometheus.MustNewConstMetric(
-		sensorValueDesc,
-		prometheus.GaugeValue,
-		data.Value,
-		strconv.FormatInt(data.ID, 10),
-		data.Name,
-		data.Type,
-	)
-	ch <- prometheus.MustNewConstMetric(
-		sensorStateDesc,
-		prometheus.GaugeValue,
-		state,
-		strconv.FormatInt(data.ID, 10),
-		data.Name,
-		data.Type,
-	)
+	if !*filterNaNSensors || !math.IsNaN(data.Value) {
+		ch <- prometheus.MustNewConstMetric(
+			sensorValueDesc,
+			prometheus.GaugeValue,
+			data.Value,
+			strconv.FormatInt(data.ID, 10),
+			data.Name,
+			data.Type,
+		)
+	}
+
+	if !*filterNaNSensors || !math.IsNaN(state) {
+		ch <- prometheus.MustNewConstMetric(
+			sensorStateDesc,
+			prometheus.GaugeValue,
+			state,
+			strconv.FormatInt(data.ID, 10),
+			data.Name,
+			data.Type,
+		)
+	}
 }
