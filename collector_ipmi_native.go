@@ -134,6 +134,49 @@ func (c IPMINativeCollector) Args() []string {
 	return []string{}
 }
 
+// sensorMetricState decides the ipmi_*_state metric value for a sensor
+// given its reported Status() string, whether it's a threshold-class
+// sensor, and (for discrete sensors) which event bits are currently
+// asserted. skip is true when the sensor has no valid reading at all
+// (status == "N/A", i.e. NotPresent/ScanningDisabled/!IsReadingValid
+// on the underlying go-ipmi Sensor) and should not be reported as a
+// metric, matching FreeIPMI's behavior of omitting such sensors
+// entirely rather than reporting a permanent NaN series.
+//
+// Threshold sensors report one of "ok"/"lnc"/"unc"/"lcr"/"ucr"/"lnr"/
+// "unr"; anything else reaching this function for a threshold sensor
+// is genuinely unrecognized and maps to NaN, same as before.
+//
+// Discrete sensors (e.g. PSU status, CPU_PROCHOT/THERMTRIP, chassis
+// intrusion) never produce one of those threshold strings -- Status()
+// falls back to a raw "0xNNNN" hex dump of the discrete state bytes
+// for them instead (see go-ipmi's Sensor.Status()). For those, no
+// active discrete event bits maps to nominal (0) and any asserted bit
+// maps to warning (1), using the same active-event data HumanStr()/
+// DiscreteActiveEventsString() already expose.
+func sensorMetricState(status string, isThreshold bool, activeDiscreteEvents []uint8) (state float64, skip bool) {
+	switch status {
+	case "N/A":
+		return 0, true
+	case "ok":
+		return 0, false
+	case "lnc", "unc": // lower/upper non-critical
+		return 1, false
+	case "lcr", "ucr": // lower/upper critical
+		return 2, false
+	case "lnr", "unr": // lower/upper non-recoverable
+		return 3, false // TODO this is new
+	default:
+		if !isThreshold {
+			if len(activeDiscreteEvents) == 0 {
+				return 0, false
+			}
+			return 1, false
+		}
+		return math.NaN(), false
+	}
+}
+
 func (c IPMINativeCollector) Collect(_ freeipmi.Result, ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	excludeIDs := target.config.ExcludeSensorIDs
 	targetHost := targetName(target.host)
@@ -159,28 +202,52 @@ func (c IPMINativeCollector) Collect(_ freeipmi.Result, ch chan<- prometheus.Met
 	// 	return 0, err
 	// }
 	for _, data := range res {
-		var state float64
+		state, skip := sensorMetricState(data.Status(), data.IsThreshold(), data.DiscreteActiveEvents())
+		if skip {
+			// FreeIPMI mode never reports a sensor at all once its
+			// reading comes back unavailable (BMC enumerates the SDR
+			// record, but there's no transducer behind it -- common
+			// for PSU telemetry sub-rails and secondary fan headers a
+			// given PSU/chassis doesn't populate). The native
+			// collector was emitting a metric{...} NaN pair for these
+			// unconditionally instead of skipping them: harmless
+			// individually (Prometheus/VM's query engine already
+			// treats a NaN sample as "no data", identical to just not
+			// scraping it -- confirmed live), but it's still a
+			// permanent, unqueryable series sitting in the TSDB for
+			// every such sensor, forever, for nothing. Match
+			// FreeIPMI's behavior instead of relying on a
+			// --collector.ipmi.exclude-sensor-id allowlist, which
+			// isn't robust: sensor IDs aren't stable across FreeIPMI
+			// vs native mode (confirmed live: the same PSU1 Status
+			// sensor is id=42 under FreeIPMI, id=160 under native).
+			continue
+		}
 
-		switch data.Status() {
-		case "ok":
-			state = 0
-		case "lnc", "unc": // lower/upper non-critical
-			state = 1
-		case "lcr", "ucr": // lower/upper critical
-			state = 2
-		case "lnr", "unr": // lower/upper non-recoverable
-			state = 3 // TODO this is new
-		case "N/A":
-			state = math.NaN()
-		default:
-			// TODO handle threshold sensor data
+		if math.IsNaN(state) {
 			logger.Error(
 				"Unknown sensor state",
 				"target", targetHost,
 				"state", data.Status(),
 				"sensor_id", strconv.FormatInt(int64(data.Number), 10),
 			)
-			state = math.NaN()
+		} else if !data.IsThreshold() && state != 0 {
+			// Discrete sensors (e.g. PSU status, CPU_PROCHOT/THERMTRIP,
+			// chassis intrusion) have no threshold ok/lnc/lcr/... status
+			// string: Status() falls back to a raw "0xNNNN" dump of the
+			// discrete state bytes for them, which sensorMetricState
+			// never matches against those cases. It maps "no discrete
+			// event bits currently asserted" to nominal and "at least
+			// one asserted" to warning, using the same active-event
+			// data HumanStr() and DiscreteActiveEventsString() already
+			// expose, instead of reporting these sensors as
+			// permanently unknown/NaN.
+			logger.Debug(
+				"Discrete sensor has active events",
+				"target", targetHost,
+				"sensor_id", strconv.FormatInt(int64(data.Number), 10),
+				"events", data.DiscreteActiveEventsString(),
+			)
 		}
 
 		logger.Debug("Got values", "target", targetHost, "data", fmt.Sprintf("%+v", data))
