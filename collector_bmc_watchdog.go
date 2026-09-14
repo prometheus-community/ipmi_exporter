@@ -71,7 +71,7 @@ var (
 	)
 	bmcWatchdogCurrentCountdownDesc = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "bmc_watchdog", "current_countdown_seconds"),
-		"Watchdog initial countdown in seconds",
+		"Watchdog current countdown in seconds",
 		[]string{},
 		nil,
 	)
