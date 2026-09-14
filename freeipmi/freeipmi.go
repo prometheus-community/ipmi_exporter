@@ -16,6 +16,7 @@ package freeipmi
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"crypto/rand"
 	"encoding/csv"
 	"encoding/hex"
@@ -30,7 +31,18 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 )
+
+// ExecuteTimeout bounds the wall-clock time a single freeipmi subprocess is
+// allowed to run. Without it, a freeipmi tool that hangs on BMC/KCS contention
+// blocks the scrape goroutine forever (exec.Command().CombinedOutput() has no
+// timeout), goroutines and file descriptors accumulate across scrapes, and the
+// long-lived exporter eventually wedges permanently (observed fleet-wide on
+// processes with 180+ day uptimes; ns MON — ipmi_up==0 with near-zero
+// ipmi_scrape_duration_seconds). It is set from the --freeipmi.timeout flag in
+// main() before any scrape runs. Zero means "no timeout" (upstream behaviour).
+var ExecuteTimeout time.Duration
 
 var (
 	ipmiDCMIPowerMeasurementRegex       = regexp.MustCompile(`^Power Measurement\s*:\s*(?P<value>Active|Not\sAvailable).*`)
@@ -131,9 +143,17 @@ func freeipmiConfigPipe(config string, logger *slog.Logger) (string, error) {
 	}
 
 	go func(file string, data []byte) {
-		f, err := os.OpenFile(file, os.O_WRONLY|os.O_CREATE|os.O_APPEND, os.ModeNamedPipe)
+		// Open O_RDWR, not O_WRONLY: opening a FIFO write-only blocks until a
+		// reader appears. If the freeipmi subprocess is killed (timeout) or never
+		// opens the config file, that open blocks forever and this goroutine
+		// leaks — one per scrape — which is a primary driver of the long-uptime
+		// wedge. O_RDWR on a FIFO returns immediately on Linux (the goroutine
+		// itself is the reader), so the write always completes and the goroutine
+		// always exits.
+		f, err := os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_APPEND, os.ModeNamedPipe)
 		if err != nil {
 			logger.Error("Error opening pipe", "error", err)
+			return
 		}
 		if _, err := f.Write(data); err != nil {
 			logger.Error("Error writing config to pipe", "error", err)
@@ -160,8 +180,19 @@ func Execute(cmd string, args []string, config string, target string, logger *sl
 	}
 
 	logger.Debug("Executing", "command", cmd, "args", fmt.Sprintf("%+v", args))
-	out, err := exec.Command(cmd, args...).CombinedOutput()
-	if err != nil {
+
+	ctx := context.Background()
+	var cancel context.CancelFunc
+	if ExecuteTimeout > 0 {
+		ctx, cancel = context.WithTimeout(ctx, ExecuteTimeout)
+		defer cancel()
+	}
+	// CommandContext kills the process (SIGKILL) if the deadline is exceeded, so
+	// a hung freeipmi tool can never block the scrape indefinitely.
+	out, err := exec.CommandContext(ctx, cmd, args...).CombinedOutput()
+	if ctx.Err() == context.DeadlineExceeded {
+		err = fmt.Errorf("timed out running %s after %s (killed)", cmd, ExecuteTimeout)
+	} else if err != nil {
 		err = fmt.Errorf("error running %s: %s", cmd, err)
 	}
 	return Result{out, err}
