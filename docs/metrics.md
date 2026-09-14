@@ -109,19 +109,19 @@ the machine. The value is 1 for power on, and 0 otherwise.
 
 This metric is only provided if the `dcmi` collector is enabled.
 
-The metric `ipmi_dcmi_power_consumption_current_watts` can be used to monitor
-the live power consumption of the machine in Watts. If in doubt, this metric
-should be used over any of the sensor data (see below), even if their name
-might suggest that they measure the same thing. This metric has no labels.
+The metric `ipmi_dcmi_power_consumption_watts` can be used to monitor the live
+power consumption of the machine in Watts. If in doubt, this metric should be
+used over any of the sensor data (see below), even if their name might suggest
+that they measure the same thing. This metric has no labels.
 
 ## System event log (SEL) info
 
 These metrics are only provided if the `sel` collector is enabled (it isn't by
 default).
 
-The metric `ipmi_sel_entries_count` contains the current number of entries in
-the SEL. It is a gauge, as the SEL can be cleared at any time. This metric has
-no labels.
+The metric `ipmi_sel_logs_count` contains the current number of entries in the
+SEL. It is a gauge, as the SEL can be cleared at any time. This metric has no
+labels.
 
 The metric `ipmi_sel_free_space_bytes` contains the current number of free
 space for new SEL entries, in bytes. This metric has no labels.
