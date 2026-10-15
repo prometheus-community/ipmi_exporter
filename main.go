@@ -45,6 +45,10 @@ var (
 		"native-ipmi",
 		"Use native IPMI implementation instead of FreeIPMI (EXPERIMENTAL)",
 	).Bool()
+	filterNaNSensors = kingpin.Flag(
+		"filter-nan-sensors",
+		"Filter out generic sensor metrics whose value/state is NaN (opt-in).",
+	).Default("false").Bool()
 	webConfig = webflag.AddFlags(kingpin.CommandLine, ":9290")
 
 	sc = &SafeConfig{
