@@ -21,6 +21,14 @@ modules:
     # timeout in Prometheus accordingly.
     # Must be larger than the retransmission timeout, which defaults to 1000.
     timeout: 10000
+    # Optional hard deadline on each spawned FreeIPMI tool (a duration).
+    # Unlike `timeout` above (FreeIPMI's session-timeout), this kills a tool
+    # that is stuck on an unresponsive BMC: SIGTERM to its process group at
+    # the deadline, SIGKILL shortly after. Disabled when unset. Collectors
+    # run serially, so a scrape can take up to
+    # (collector_timeout * #-of-collectors) - size the Prometheus
+    # scrape_interval/scrape_timeout accordingly.
+    collector_timeout: 20s
     # Available collectors are bmc, bmc-watchdog, ipmi, chassis, dcmi, sel,
     # and sm-lan-mode
     # If _not_ specified, bmc, ipmi, chassis, and dcmi are used

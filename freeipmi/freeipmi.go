@@ -16,21 +16,28 @@ package freeipmi
 import (
 	"bufio"
 	"bytes"
-	"crypto/rand"
+	"context"
 	"encoding/csv"
-	"encoding/hex"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"regexp"
 	"slices"
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 )
+
+// waitDelay is how long Wait keeps waiting, after the child has exited or the
+// context has been canceled, for the child's inherited output pipes to close
+// before forcibly closing them (and, on cancellation, killing the process).
+// This is the escape hatch for a grandchild that inherited stdout/stderr and
+// outlives the child. A variable so tests can shorten it.
+var waitDelay = 5 * time.Second
 
 var (
 	ipmiDCMIPowerMeasurementRegex       = regexp.MustCompile(`^Power Measurement\s*:\s*(?P<value>Active|Not\sAvailable).*`)
@@ -90,15 +97,6 @@ func EscapePassword(password string) string {
 	return strings.ReplaceAll(password, "#", "\\#")
 }
 
-func pipeName() (string, error) {
-	randBytes := make([]byte, 16)
-	_, err := rand.Read(randBytes)
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(os.TempDir(), "ipmi_exporter-"+hex.EncodeToString(randBytes)), nil
-}
-
 func contains(s []int64, elm int64) bool {
 	return slices.Contains(s, elm)
 }
@@ -119,50 +117,74 @@ func getValue(ipmiOutput []byte, regex *regexp.Regexp) (string, error) {
 	return "", fmt.Errorf("could not find value in output: %s", string(ipmiOutput))
 }
 
-func freeipmiConfigPipe(config string, logger *slog.Logger) (string, error) {
-	content := []byte(config)
-	pipe, err := pipeName()
-	if err != nil {
-		return "", err
-	}
-	err = syscall.Mkfifo(pipe, 0600)
-	if err != nil {
-		return "", err
-	}
-
-	go func(file string, data []byte) {
-		f, err := os.OpenFile(file, os.O_WRONLY|os.O_CREATE|os.O_APPEND, os.ModeNamedPipe)
-		if err != nil {
-			logger.Error("Error opening pipe", "error", err)
-		}
-		if _, err := f.Write(data); err != nil {
-			logger.Error("Error writing config to pipe", "error", err)
-		}
-		f.Close()
-	}(pipe, content)
-	return pipe, nil
+// Execute runs a FreeIPMI tool with no deadline. It is a convenience wrapper
+// around ExecuteContext, kept for backwards compatibility.
+func Execute(cmd string, args []string, config string, target string, logger *slog.Logger) Result {
+	return ExecuteContext(context.Background(), cmd, args, config, target, logger)
 }
 
-func Execute(cmd string, args []string, config string, target string, logger *slog.Logger) Result {
-	pipe, err := freeipmiConfigPipe(config, logger)
+// ExecuteContext runs a FreeIPMI tool, bounded by ctx. When ctx expires, the
+// tool's process group receives SIGTERM; if it still has not let go of its
+// output pipes after waitDelay, it is killed.
+func ExecuteContext(ctx context.Context, cmd string, args []string, config string, target string, logger *slog.Logger) Result {
+	// The FreeIPMI config is handed over on an inherited anonymous pipe: the
+	// read end becomes fd 3 in the child (first ExtraFiles entry), addressed
+	// as /dev/fd/3 — available on every unix platform this package builds for,
+	// and FreeIPMI's config parser only needs access(R_OK) + open(2). Keeps
+	// credentials off the command line and the filesystem. The config is
+	// passed even when empty: an empty override deliberately masks any
+	// system-wide /etc/freeipmi/freeipmi.conf; omitting it would change
+	// behavior.
+	r, w, err := os.Pipe()
 	if err != nil {
 		return Result{nil, err}
 	}
-	defer func() {
-		if err := os.Remove(pipe); err != nil {
-			logger.Error("Error deleting named pipe", "error", err)
-		}
-	}()
+	defer r.Close()
 
-	args = append(args, "--config-file", pipe)
+	args = append(args, "--config-file", "/dev/fd/3")
 	if target != "" {
 		args = append(args, "-h", target)
 	}
 
+	c := exec.CommandContext(ctx, cmd, args...)
+	c.ExtraFiles = []*os.File{r}
+	// Run the tool in its own process group so cancellation can signal the
+	// whole group, not just the direct child.
+	c.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	c.Cancel = func() error {
+		err := syscall.Kill(-c.Process.Pid, syscall.SIGTERM)
+		if errors.Is(err, syscall.ESRCH) {
+			return os.ErrProcessDone
+		}
+		return err
+	}
+	// Also bounds how long Wait blocks on output pipes held open by an
+	// orphaned grandchild after the child itself has exited.
+	c.WaitDelay = waitDelay
+
+	// Feed the config from a goroutine rather than up front: its size is
+	// unbounded (usernames, passwords, workaround flags), so writing before
+	// start could deadlock on the pipe buffer. The goroutine cannot leak —
+	// once both read ends are gone (child exited, deferred r.Close above), a
+	// blocked write fails with EPIPE and the goroutine exits.
+	go func() {
+		if _, err := w.Write([]byte(config)); err != nil && !errors.Is(err, syscall.EPIPE) {
+			logger.Error("Error writing config to pipe", "error", err)
+		}
+		w.Close()
+	}()
+
 	logger.Debug("Executing", "command", cmd, "args", fmt.Sprintf("%+v", args))
-	out, err := exec.Command(cmd, args...).CombinedOutput()
+	start := time.Now()
+	out, err := c.CombinedOutput()
 	if err != nil {
-		err = fmt.Errorf("error running %s: %s", cmd, err)
+		// Distinguish a deadline kill from an ordinary non-zero exit so
+		// operators can tell a slow BMC from a failing tool.
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			err = fmt.Errorf("error running %s: timed out after %s", cmd, time.Since(start).Round(time.Millisecond))
+		} else {
+			err = fmt.Errorf("error running %s: %s", cmd, err)
+		}
 	}
 	return Result{out, err}
 }

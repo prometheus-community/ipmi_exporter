@@ -42,6 +42,35 @@ There are two commented example configuration files, see `ipmi_local.yml` for
 scraping local host metrics and `ipmi_remote.yml` for scraping remote IPMI
 interfaces.
 
+### Bounding collector runtime
+
+**NOTE:** the `timeout` module setting is only FreeIPMI's `session-timeout`
+(milliseconds, per IPMI session). It does *not* bound how long a spawned
+FreeIPMI tool may run — a tool stuck on an unresponsive BMC can outlive it
+indefinitely, and overlapping scrapes will keep spawning more (see issue
+[#95](https://github.com/prometheus-community/ipmi_exporter/issues/95)).
+
+To bound the wall-clock runtime of each FreeIPMI invocation, set
+`collector_timeout` (a duration, e.g. `20s`). On expiry the tool's process
+group receives `SIGTERM`, followed by `SIGKILL` after a short grace period;
+the affected collector reports `ipmi_up 0` for that scrape. It is disabled by
+default. When enabling it, note:
+
+* Collectors run serially, so a scrape can take up to
+  `collector_timeout × number-of-collectors` — keep the Prometheus
+  `scrape_interval` above that product to avoid overlapping scrapes, and set
+  `scrape_timeout` accordingly.
+* The first `ipmi`-collector run against a host rebuilds the SDR cache, which
+  on some BMCs takes considerably longer than a normal sweep — choose a value
+  that accommodates it (or avoid values below ~20s).
+* It does not apply to `--native-ipmi` collectors, which do not spawn
+  subprocesses (the native client already honors `timeout` as a session
+  deadline).
+* When collectors are wrapped with `sudo` (see `ipmi_local_sudo.yml`), the
+  spawned processes run as root and an unprivileged exporter cannot signal
+  them — in that setup, prefer wrapping the tools with `timeout(1)` inside
+  the sudo command line instead.
+
 ## Prometheus
 
 ### Local metrics
