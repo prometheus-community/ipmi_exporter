@@ -26,13 +26,11 @@ const (
 	SMLANModeCollectorName CollectorName = "sm-lan-mode"
 )
 
-var (
-	lanModeDesc = prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "config", "lan_mode"),
-		"Returns configured LAN mode (0=dedicated, 1=shared, 2=failover).",
-		nil,
-		nil,
-	)
+var lanModeDesc = prometheus.NewDesc(
+	prometheus.BuildFQName(namespace, "config", "lan_mode"),
+	"Returns configured LAN mode (0=dedicated, 1=shared, 2=failover).",
+	nil,
+	nil,
 )
 
 type SMLANModeCollector struct{}

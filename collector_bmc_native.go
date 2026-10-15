@@ -17,19 +17,17 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/bougou/go-ipmi"
+	ipmitypes "github.com/bougou/go-ipmi/pkg/types"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/prometheus-community/ipmi_exporter/freeipmi"
 )
 
-var (
-	bmcNativeInfoDesc = prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "bmc", "info"),
-		"Constant metric with value '1' providing details about the BMC.",
-		[]string{"firmware_revision", "manufacturer", "manufacturer_id", "system_firmware_version"},
-		nil,
-	)
+var bmcNativeInfoDesc = prometheus.NewDesc(
+	prometheus.BuildFQName(namespace, "bmc", "info"),
+	"Constant metric with value '1' providing details about the BMC.",
+	[]string{"firmware_revision", "manufacturer", "manufacturer_id", "system_firmware_version"},
+	nil,
 )
 
 type BMCNativeCollector struct{}
@@ -61,11 +59,11 @@ func (c BMCNativeCollector) Collect(_ freeipmi.Result, ch chan<- prometheus.Metr
 
 	// The API looks slightly awkward here, but doing this instead of calling
 	// client.GetSystemInfo() greatly reduces the number of required round-trips.
-	systemInfo := ipmi.SystemInfoParams{
-		SetInProgress: &ipmi.SystemInfoParam_SetInProgress{
-			Value: ipmi.SetInProgress_SetComplete,
+	systemInfo := ipmitypes.SystemInfoParams{
+		SetInProgress: &ipmitypes.SystemInfoParam_SetInProgress{
+			Value: ipmitypes.SetInProgress_SetComplete,
 		},
-		SystemFirmwareVersions: make([]*ipmi.SystemInfoParam_SystemFirmwareVersion, 0),
+		SystemFirmwareVersions: make([]*ipmitypes.SystemInfoParam_SystemFirmwareVersion, 0),
 	}
 	err = client.GetSystemInfoParamsFor(ctx, &systemInfo)
 	// This one is not always available
@@ -81,7 +79,7 @@ func (c BMCNativeCollector) Collect(_ freeipmi.Result, ch chan<- prometheus.Metr
 		prometheus.GaugeValue,
 		1,
 		res.FirmwareVersionStr(),
-		ipmi.OEM(res.ManufacturerID).String(),
+		ipmitypes.OEM(res.ManufacturerID).String(),
 		strconv.FormatUint(uint64(res.ManufacturerID), 10),
 		systemFirmwareVersion,
 	)

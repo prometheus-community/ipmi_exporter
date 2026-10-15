@@ -125,7 +125,7 @@ func freeipmiConfigPipe(config string, logger *slog.Logger) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	err = syscall.Mkfifo(pipe, 0600)
+	err = syscall.Mkfifo(pipe, 0o600)
 	if err != nil {
 		return "", err
 	}
@@ -143,7 +143,7 @@ func freeipmiConfigPipe(config string, logger *slog.Logger) (string, error) {
 	return pipe, nil
 }
 
-func Execute(cmd string, args []string, config string, target string, logger *slog.Logger) Result {
+func Execute(cmd string, args []string, config, target string, logger *slog.Logger) Result {
 	pipe, err := freeipmiConfigPipe(config, logger)
 	if err != nil {
 		return Result{nil, err}
@@ -455,7 +455,6 @@ func GetSELEvents(ipmiOutput Result) ([]SELEventData, error) {
 			}
 		}
 		id, err := strconv.ParseInt(result["id"], 10, 64)
-
 		// ignore lines which does not starts with number
 		if err != nil {
 			continue
