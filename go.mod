@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/alecthomas/kingpin/v2 v2.4.0
-	github.com/bougou/go-ipmi v0.8.3
+	github.com/bougou/go-ipmi v0.9.1
 	github.com/prometheus/client_golang v1.25.0
 	github.com/prometheus/common v0.72.0
 	github.com/prometheus/exporter-toolkit v0.20.0
@@ -17,6 +17,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.7.0 // indirect
 	github.com/fatih/color v1.15.0 // indirect
+	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect

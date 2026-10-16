@@ -86,7 +86,7 @@ func (c SELEventsNativeCollector) Collect(_ freeipmi.Result, ch chan<- prometheu
 			match := metricConfig.Regex.FindStringSubmatch(data.Standard.EventString())
 			logger.Debug("event regex", "regex", metricConfig.RegexRaw, "input", data.Standard.EventString(), "match", match)
 			if match != nil {
-				var newTimestamp = float64(data.Standard.Timestamp.Unix())
+				newTimestamp := float64(data.Standard.Timestamp.Unix())
 				// datetime := data.Date + " " + data.Time
 				// t, err := time.Parse(SELDateTimeFormat, datetime)
 				// ignore errors with invalid date or time

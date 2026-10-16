@@ -21,13 +21,11 @@ import (
 	"github.com/prometheus-community/ipmi_exporter/freeipmi"
 )
 
-var (
-	powerConsumptionNativeDesc = prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "dcmi", "power_consumption_watts"),
-		"Current power consumption in Watts.",
-		[]string{},
-		nil,
-	)
+var powerConsumptionNativeDesc = prometheus.NewDesc(
+	prometheus.BuildFQName(namespace, "dcmi", "power_consumption_watts"),
+	"Current power consumption in Watts.",
+	[]string{},
+	nil,
 )
 
 type DCMINativeCollector struct{}

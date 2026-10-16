@@ -17,19 +17,17 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bougou/go-ipmi"
+	ipmitypes "github.com/bougou/go-ipmi/pkg/types"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/prometheus-community/ipmi_exporter/freeipmi"
 )
 
-var (
-	lanModeNativeDesc = prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "config", "lan_mode"),
-		"Returns configured LAN mode (0=dedicated, 1=shared, 2=failover).",
-		nil,
-		nil,
-	)
+var lanModeNativeDesc = prometheus.NewDesc(
+	prometheus.BuildFQName(namespace, "config", "lan_mode"),
+	"Returns configured LAN mode (0=dedicated, 1=shared, 2=failover).",
+	nil,
+	nil,
 )
 
 type SMLANModeNativeCollector struct{}
@@ -54,11 +52,11 @@ func (c SMLANModeNativeCollector) Collect(_ freeipmi.Result, ch chan<- prometheu
 		return 0, err
 	}
 	defer CloseNativeClient(ctx, client)
-	if _, err := client.SetSessionPrivilegeLevel(ctx, ipmi.PrivilegeLevelAdministrator); err != nil {
+	if _, err := client.SetSessionPrivilegeLevel(ctx, ipmitypes.PrivilegeLevelAdministrator); err != nil {
 		logger.Error("Failed to set privilege level to admin", "target", targetName(target.host))
 		return 0, fmt.Errorf("failed to set privilege level to admin")
 	}
-	res, err := client.RawCommand(ctx, ipmi.NetFnOEMSupermicroRequest, 0x70, []byte{0x0C, 0x00}, "GetSupermicroLanMode")
+	res, err := client.RawCommand(ctx, ipmitypes.NetFnOEMSupermicroRequest, 0x70, []byte{0x0C, 0x00}, "GetSupermicroLanMode")
 	if err != nil {
 		logger.Error("raw command failed", "error", err)
 		return 0, err

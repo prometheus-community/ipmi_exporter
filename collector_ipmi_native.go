@@ -20,7 +20,7 @@ import (
 	"slices"
 	"strconv"
 
-	"github.com/bougou/go-ipmi"
+	ipmitypes "github.com/bougou/go-ipmi/pkg/types"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/prometheus-community/ipmi_exporter/freeipmi"
@@ -138,7 +138,7 @@ func (c IPMINativeCollector) Collect(_ freeipmi.Result, ch chan<- prometheus.Met
 	excludeIDs := target.config.ExcludeSensorIDs
 	targetHost := targetName(target.host)
 
-	filter := func(sensor *ipmi.Sensor) bool {
+	filter := func(sensor *ipmitypes.Sensor) bool {
 		return !slices.Contains(excludeIDs, int64(sensor.Number))
 	}
 
@@ -187,20 +187,19 @@ func (c IPMINativeCollector) Collect(_ freeipmi.Result, ch chan<- prometheus.Met
 
 		// TODO this could be greatly improved, now that we have structured data available
 		switch data.SensorUnit.BaseUnit {
-		case ipmi.SensorUnitType_RPM:
+		case ipmitypes.SensorUnitType_RPM:
 			if data.SensorUnit.Percentage {
 				collectTypedSensorNative(ch, fanSpeedRatioNativeDesc, fanSpeedStateNativeDesc, state, data, 0.01)
 			} else {
-
 				collectTypedSensorNative(ch, fanSpeedRPMNativeDesc, fanSpeedStateNativeDesc, state, data, 1.0)
 			}
-		case ipmi.SensorUnitType_DegreesC:
+		case ipmitypes.SensorUnitType_DegreesC:
 			collectTypedSensorNative(ch, temperatureNativeDesc, temperatureStateNativeDesc, state, data, 1.0)
-		case ipmi.SensorUnitType_Amps:
+		case ipmitypes.SensorUnitType_Amps:
 			collectTypedSensorNative(ch, currentNativeDesc, currentStateNativeDesc, state, data, 1.0)
-		case ipmi.SensorUnitType_Volts:
+		case ipmitypes.SensorUnitType_Volts:
 			collectTypedSensorNative(ch, voltageNativeDesc, voltageStateNativeDesc, state, data, 1.0)
-		case ipmi.SensorUnitType_Watts:
+		case ipmitypes.SensorUnitType_Watts:
 			collectTypedSensorNative(ch, powerNativeDesc, powerStateNativeDesc, state, data, 1.0)
 		default:
 			collectGenericSensorNative(ch, state, data)
@@ -225,7 +224,7 @@ func (c IPMINativeCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- powerStateDesc
 }
 
-func collectTypedSensorNative(ch chan<- prometheus.Metric, desc, stateDesc *prometheus.Desc, state float64, data *ipmi.Sensor, scale float64) {
+func collectTypedSensorNative(ch chan<- prometheus.Metric, desc, stateDesc *prometheus.Desc, state float64, data *ipmitypes.Sensor, scale float64) {
 	ch <- prometheus.MustNewConstMetric(
 		desc,
 		prometheus.GaugeValue,
@@ -242,7 +241,7 @@ func collectTypedSensorNative(ch chan<- prometheus.Metric, desc, stateDesc *prom
 	)
 }
 
-func collectGenericSensorNative(ch chan<- prometheus.Metric, state float64, data *ipmi.Sensor) {
+func collectGenericSensorNative(ch chan<- prometheus.Metric, state float64, data *ipmitypes.Sensor) {
 	ch <- prometheus.MustNewConstMetric(
 		sensorValueNativeDesc,
 		prometheus.GaugeValue,
