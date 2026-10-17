@@ -46,6 +46,9 @@ FreeIPMI-based collectors:
     this to "OPERATOR" by default, but go-ipmi does not)
 * **ipmi collector:** sensors can now have a `state` value of `3`
   ("non-recoverable") - a value that FreeIPMI does not provide
+* **ipmi collector:** discrete sensors (e.g. PSU status, chassis intrusion)
+  have a `state` of `0` if no event is asserted and `1` otherwise. This does
+  not take the severity of the individual event into account.
 * **chassis collector:** in the native collector, the representation changed
   from `"Current drive fault state (1=false, 0=true)."` to `"Current drive
   fault state (1=true, 0=false)."`, simply because the current representation

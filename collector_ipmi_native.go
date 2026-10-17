@@ -134,6 +134,31 @@ func (c IPMINativeCollector) Args() []string {
 	return []string{}
 }
 
+// sensorMetricState maps a go-ipmi sensor status to the state metric. go-ipmi
+// returns the state bytes of discrete sensors as hexdump. Map those to 0 for no
+// event, 1 otherwise.
+func sensorMetricState(status string, threshold bool, activeEvents int) (state float64, known bool) {
+	switch status {
+	case "ok":
+		return 0, true
+	case "lnc", "unc": // lower/upper non-critical
+		return 1, true
+	case "lcr", "ucr": // lower/upper critical
+		return 2, true
+	case "lnr", "unr": // lower/upper non-recoverable
+		return 3, true // TODO this is new
+	case "N/A":
+		return math.NaN(), true
+	}
+	if threshold {
+		return math.NaN(), false
+	}
+	if activeEvents == 0 {
+		return 0, true
+	}
+	return 1, true
+}
+
 func (c IPMINativeCollector) Collect(_ freeipmi.Result, ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	excludeIDs := target.config.ExcludeSensorIDs
 	targetHost := targetName(target.host)
@@ -159,28 +184,14 @@ func (c IPMINativeCollector) Collect(_ freeipmi.Result, ch chan<- prometheus.Met
 	// 	return 0, err
 	// }
 	for _, data := range res {
-		var state float64
-
-		switch data.Status() {
-		case "ok":
-			state = 0
-		case "lnc", "unc": // lower/upper non-critical
-			state = 1
-		case "lcr", "ucr": // lower/upper critical
-			state = 2
-		case "lnr", "unr": // lower/upper non-recoverable
-			state = 3 // TODO this is new
-		case "N/A":
-			state = math.NaN()
-		default:
-			// TODO handle threshold sensor data
+		state, known := sensorMetricState(data.Status(), data.IsThreshold(), len(data.DiscreteActiveEvents()))
+		if !known {
 			logger.Error(
 				"Unknown sensor state",
 				"target", targetHost,
 				"state", data.Status(),
 				"sensor_id", strconv.FormatInt(int64(data.Number), 10),
 			)
-			state = math.NaN()
 		}
 
 		logger.Debug("Got values", "target", targetHost, "data", fmt.Sprintf("%+v", data))
