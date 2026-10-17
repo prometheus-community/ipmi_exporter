@@ -1,5 +1,7 @@
 ## next
 
+* Fix state of discrete sensors in native IPMI collector (#243)
+
 ## 1.10.1 / 2025-07-11
 
 * Fix panic in native BMC collector (#267)
