@@ -119,14 +119,14 @@ func getValue(ipmiOutput []byte, regex *regexp.Regexp) (string, error) {
 
 // Execute runs a FreeIPMI tool with no deadline. It is a convenience wrapper
 // around ExecuteContext, kept for backwards compatibility.
-func Execute(cmd string, args []string, config string, target string, logger *slog.Logger) Result {
+func Execute(cmd string, args []string, config, target string, logger *slog.Logger) Result {
 	return ExecuteContext(context.Background(), cmd, args, config, target, logger)
 }
 
 // ExecuteContext runs a FreeIPMI tool, bounded by ctx. When ctx expires, the
 // tool's process group receives SIGTERM; if it still has not let go of its
 // output pipes after waitDelay, it is killed.
-func ExecuteContext(ctx context.Context, cmd string, args []string, config string, target string, logger *slog.Logger) Result {
+func ExecuteContext(ctx context.Context, cmd string, args []string, config, target string, logger *slog.Logger) Result {
 	// The FreeIPMI config is handed over on an inherited anonymous pipe: the
 	// read end becomes fd 3 in the child (first ExtraFiles entry), addressed
 	// as /dev/fd/3 — available on every unix platform this package builds for,
