@@ -92,7 +92,6 @@ func (c BMCWatchdogNativeCollector) Args() []string {
 }
 
 func (c BMCWatchdogNativeCollector) Collect(_ freeipmi.Result, ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
-
 	// TODO this now works remotely
 
 	ctx := context.TODO()

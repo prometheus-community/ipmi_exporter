@@ -271,7 +271,7 @@ func (s *IPMIConfig) GetFreeipmiConfig() string {
 // ReloadConfig reloads the config in a concurrency-safe way. If the configFile
 // is unreadable or unparsable, an error is returned and the old config is kept.
 func (sc *SafeConfig) ReloadConfig(configFile string) error {
-	var c = &Config{}
+	c := &Config{}
 	var config []byte
 	var err error
 
@@ -315,7 +315,7 @@ func (sc *SafeConfig) ConfigForTarget(target, module string) IPMIConfig {
 	defer sc.Unlock()
 
 	var config IPMIConfig
-	var ok = false
+	ok := false
 
 	if module != "default" {
 		config, ok = sc.C.Modules[module]

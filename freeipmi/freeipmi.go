@@ -477,7 +477,6 @@ func GetSELEvents(ipmiOutput Result) ([]SELEventData, error) {
 			}
 		}
 		id, err := strconv.ParseInt(result["id"], 10, 64)
-
 		// ignore lines which does not starts with number
 		if err != nil {
 			continue

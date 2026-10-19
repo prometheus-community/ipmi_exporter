@@ -23,13 +23,11 @@ const (
 	DCMICollectorName CollectorName = "dcmi"
 )
 
-var (
-	powerConsumptionDesc = prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "dcmi", "power_consumption_watts"),
-		"Current power consumption in Watts.",
-		[]string{},
-		nil,
-	)
+var powerConsumptionDesc = prometheus.NewDesc(
+	prometheus.BuildFQName(namespace, "dcmi", "power_consumption_watts"),
+	"Current power consumption in Watts.",
+	[]string{},
+	nil,
 )
 
 type DCMICollector struct{}

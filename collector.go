@@ -22,7 +22,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bougou/go-ipmi"
+	ipmiclient "github.com/bougou/go-ipmi/pkg/client"
+	ipmitypes "github.com/bougou/go-ipmi/pkg/types"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/prometheus-community/ipmi_exporter/freeipmi"
@@ -139,12 +140,12 @@ func targetName(target string) string {
 	return target
 }
 
-func NewNativeClient(ctx context.Context, target ipmiTarget) (*ipmi.Client, error) {
-	var client *ipmi.Client
+func NewNativeClient(ctx context.Context, target ipmiTarget) (*ipmiclient.Client, error) {
+	var client *ipmiclient.Client
 	var err error
 
 	if target.host == targetLocal {
-		client, err = ipmi.NewOpenClient()
+		client, err = ipmiclient.NewOpenClient()
 	} else {
 		var (
 			host, port string
@@ -158,7 +159,7 @@ func NewNativeClient(ctx context.Context, target ipmiTarget) (*ipmi.Client, erro
 		if err != nil {
 			return nil, fmt.Errorf("invalid port '%s': %s", port, err.Error())
 		}
-		client, err = ipmi.NewClient(host, int(p), target.config.User, target.config.Password)
+		client, err = ipmiclient.NewClient(host, int(p), target.config.User, target.config.Password)
 	}
 	if err != nil {
 		logger.Error("Error creating IPMI client", "target", target.host, "error", err)
@@ -166,21 +167,21 @@ func NewNativeClient(ctx context.Context, target ipmiTarget) (*ipmi.Client, erro
 	}
 	if target.host != targetLocal {
 		// TODO it's probably safe to ditch other interfaces?
-		client = client.WithInterface(ipmi.InterfaceLanplus)
+		client = client.WithInterface(ipmiclient.InterfaceLanplus)
 	}
 	if target.config.Timeout != 0 {
 		client = client.WithTimeout(time.Duration(target.config.Timeout * uint32(time.Millisecond)))
 	}
 	if target.config.Privilege != "" {
 		// TODO this means different default (unspecified) for native vs. FreeIPMI (operator)
-		priv := ipmi.PrivilegeLevelUnspecified
+		priv := ipmitypes.PrivilegeLevelUnspecified
 		switch strings.ToLower(target.config.Privilege) {
 		case "admin":
-			priv = ipmi.PrivilegeLevelAdministrator
+			priv = ipmitypes.PrivilegeLevelAdministrator
 		case "operator":
-			priv = ipmi.PrivilegeLevelOperator
+			priv = ipmitypes.PrivilegeLevelOperator
 		case "user":
-			priv = ipmi.PrivilegeLevelUser
+			priv = ipmitypes.PrivilegeLevelUser
 		}
 		client = client.WithMaxPrivilegeLevel(priv)
 	}
@@ -192,7 +193,7 @@ func NewNativeClient(ctx context.Context, target ipmiTarget) (*ipmi.Client, erro
 	return client, nil
 }
 
-func CloseNativeClient(ctx context.Context, client *ipmi.Client) {
+func CloseNativeClient(ctx context.Context, client *ipmiclient.Client) {
 	if closeErr := client.Close(ctx); closeErr != nil {
 		logger.Warn("Failed to close IPMI client", "target", client.Host, "error", closeErr)
 	}
