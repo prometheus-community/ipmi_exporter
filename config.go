@@ -19,8 +19,10 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/common/model"
 	"go.yaml.in/yaml/v2"
 
 	"github.com/prometheus-community/ipmi_exporter/freeipmi"
@@ -137,11 +139,20 @@ type SafeConfig struct {
 // IPMIConfig is the Go representation of a module configuration in the yaml
 // config file.
 type IPMIConfig struct {
-	User             string                     `yaml:"user"`
-	Password         string                     `yaml:"pass"`
-	Privilege        string                     `yaml:"privilege"`
-	Driver           string                     `yaml:"driver"`
-	Timeout          uint32                     `yaml:"timeout"`
+	User      string `yaml:"user"`
+	Password  string `yaml:"pass"`
+	Privilege string `yaml:"privilege"`
+	Driver    string `yaml:"driver"`
+	// Timeout is only rendered into the FreeIPMI config as session-timeout
+	// (per-IPMI-session, in milliseconds). It does NOT bound the runtime of
+	// the spawned FreeIPMI process — see CollectorTimeout for that.
+	Timeout uint32 `yaml:"timeout"`
+	// CollectorTimeout bounds the wall-clock runtime of each spawned FreeIPMI
+	// tool. On expiry the process group receives SIGTERM, then SIGKILL after a
+	// grace period. Zero (the default) preserves the historical behavior of no
+	// deadline. Not applicable to --native-ipmi collectors, which do not spawn
+	// subprocesses.
+	CollectorTimeout model.Duration             `yaml:"collector_timeout"`
 	Collectors       []CollectorName            `yaml:"collectors"`
 	ExcludeSensorIDs []int64                    `yaml:"exclude_sensor_ids"`
 	WorkaroundFlags  []string                   `yaml:"workaround_flags"`
@@ -222,6 +233,12 @@ func (s *IPMIConfig) GetCollectors() []collector {
 		result = append(result, cc)
 	}
 	return result
+}
+
+// GetCollectorTimeout returns the per-subprocess deadline, or zero when
+// disabled.
+func (s *IPMIConfig) GetCollectorTimeout() time.Duration {
+	return time.Duration(s.CollectorTimeout)
 }
 
 func (s *IPMIConfig) GetFreeipmiConfig() string {
