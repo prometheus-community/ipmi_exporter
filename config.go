@@ -70,6 +70,14 @@ func (c ConfiguredCollector) Collect(output freeipmi.Result, ch chan<- prometheu
 	return c.collector.Collect(output, ch, target)
 }
 
+// Input passes on a collector's requests, if it has any.
+func (c ConfiguredCollector) Input(target ipmiTarget) []byte {
+	if ic, ok := c.collector.(inputCollector); ok {
+		return ic.Input(target)
+	}
+	return nil
+}
+
 func (c CollectorName) GetInstance() (collector, error) {
 	// This is where a new collector would have to be "registered"
 	switch c {
@@ -113,6 +121,11 @@ func (c CollectorName) GetInstance() (collector, error) {
 			return SMLANModeNativeCollector{}, nil
 		}
 		return SMLANModeCollector{}, nil
+	case SMFanCollectorName:
+		if *nativeIPMI {
+			return SMFanNativeCollector{}, nil
+		}
+		return SMFanCollector{}, nil
 	}
 	return nil, fmt.Errorf("invalid collector: %s", string(c))
 }
