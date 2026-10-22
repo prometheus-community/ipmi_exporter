@@ -121,6 +121,11 @@ func (c CollectorName) GetInstance() (collector, error) {
 			return SMLANModeNativeCollector{}, nil
 		}
 		return SMLANModeCollector{}, nil
+	case SMFanCollectorName:
+		if *nativeIPMI {
+			return SMFanNativeCollector{}, nil
+		}
+		return SMFanCollector{}, nil
 	}
 	return nil, fmt.Errorf("invalid collector: %s", string(c))
 }

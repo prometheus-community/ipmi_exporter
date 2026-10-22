@@ -32,6 +32,8 @@ These metrics provide data about the scrape itself:
       (SEL). If it fails, SEL entries metrics (see below) will not be available
    - `sm-lan-mode`: collects the "LAN mode" setting in the current BMC config.
      If it fails, the LAN mode metric (see below) will not be available
+   - `sm-fan`: collects the fan mode and fan zone duty on Supermicro BMCs. If it
+     fails, the fan metrics (see below) will not be available
  - `ipmi_scrape_duration_seconds` is the amount of time it took to retrieve the
    data
 
@@ -159,6 +161,26 @@ See e.g. https://www.supermicro.com/support/faqs/faq.cfm?faq=28159
 The metric `ipmi_config_lan_mode` contains the value for the current "LAN mode"
 setting (see link above): `0` for "dedicated", `1` for "shared", and `2` for
 "failover".
+
+## Supermicro fan mode and duty
+
+These metrics are only provided if the `sm-fan` collector is enabled (it isn't
+by default).
+
+**NOTE:** This is a vendor-specific collector, it will only work on Supermicro
+hardware, possibly even only on _some_ Supermicro systems.
+
+**NOTE:** Like `sm-lan-mode`, this may need `privilege: "admin"` in the config.
+
+The metric `ipmi_config_fan_mode` is the BMC's fan mode: `0` standard, `1` full,
+`2` optimal, `3` PUE, `4` heavy IO. Some BMCs report other numbers, so it is
+exported as given.
+
+The metric `ipmi_fan_zone_duty_ratio` is how hard each fan zone is set to run,
+from 0 to 1, for zones 0 and 1:
+
+    ipmi_fan_zone_duty_ratio{zone="0"} 0.5
+    ipmi_fan_zone_duty_ratio{zone="1"} 0.3
 
 ## Sensors
 
