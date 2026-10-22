@@ -41,6 +41,12 @@ type collector interface {
 	Collect(output freeipmi.Result, ch chan<- prometheus.Metric, target ipmiTarget) (int, error)
 }
 
+// inputCollector hands its tool several requests at once, so they share one
+// login to the BMC.
+type inputCollector interface {
+	Input(target ipmiTarget) []byte
+}
+
 type metaCollector struct {
 	target string
 	module string
@@ -115,13 +121,17 @@ func (c metaCollector) Collect(ch chan<- prometheus.Metric) {
 			}
 			args := collector.Args()
 			cfg := config.GetFreeipmiConfig()
+			var input []byte
+			if ic, ok := collector.(inputCollector); ok {
+				input = ic.Input(target)
+			}
 
 			ctx := context.Background()
 			cancel := context.CancelFunc(func() {})
 			if timeout := config.GetCollectorTimeout(); timeout > 0 {
 				ctx, cancel = context.WithTimeout(ctx, timeout)
 			}
-			result = freeipmi.ExecuteContext(ctx, fqcmd, args, cfg, target.host, logger)
+			result = freeipmi.ExecuteContextInput(ctx, fqcmd, args, cfg, target.host, input, logger)
 			cancel()
 		}
 

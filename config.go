@@ -70,9 +70,22 @@ func (c ConfiguredCollector) Collect(output freeipmi.Result, ch chan<- prometheu
 	return c.collector.Collect(output, ch, target)
 }
 
+// Input passes on a collector's requests, if it has any.
+func (c ConfiguredCollector) Input(target ipmiTarget) []byte {
+	if ic, ok := c.collector.(inputCollector); ok {
+		return ic.Input(target)
+	}
+	return nil
+}
+
 func (c CollectorName) GetInstance() (collector, error) {
 	// This is where a new collector would have to be "registered"
 	switch c {
+	case PMBusCollectorName:
+		if *nativeIPMI {
+			return PMBusNativeCollector{}, nil
+		}
+		return PMBusCollector{}, nil
 	case IPMICollectorName:
 		if *nativeIPMI {
 			return IPMINativeCollector{}, nil
@@ -161,6 +174,11 @@ type IPMIConfig struct {
 	CustomArgs       map[CollectorName][]string `yaml:"custom_args"`
 
 	SELEvents []*IpmiSELEvent `yaml:"sel_events,omitempty"`
+
+	PowerSupplies []PowerSupplyConfig `yaml:"power_supplies,omitempty"`
+	// PowerSupplyInfo also asks each supply for its maker, model and serial.
+	// Some BMCs then drop the read that follows, so it is off by default.
+	PowerSupplyInfo bool `yaml:"power_supply_info"`
 	// Catches all undefined fields and must be empty after parsing.
 	XXX map[string]any `yaml:",inline"`
 }
@@ -169,6 +187,14 @@ type IpmiSELEvent struct {
 	Name     string         `yaml:"name"`
 	RegexRaw string         `yaml:"regex"`
 	Regex    *regexp.Regexp `yaml:"-"`
+}
+
+// PowerSupplyConfig is where the pmbus collector finds one power supply. Name
+// labels its metrics; without one, its place in the list is used.
+type PowerSupplyConfig struct {
+	Name    string `yaml:"name"`
+	Bus     uint8  `yaml:"bus"`
+	Address uint8  `yaml:"address"`
 }
 
 var defaultConfig = IPMIConfig{
