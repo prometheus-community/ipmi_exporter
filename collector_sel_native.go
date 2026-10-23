@@ -23,7 +23,7 @@ import (
 
 var (
 	selEntriesCountNativeDesc = prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "sel", "logs_count"),
+		prometheus.BuildFQName(namespace, "sel", "entries"),
 		"Current number of log entries in the SEL.",
 		[]string{},
 		nil,
