@@ -52,6 +52,25 @@ modules:
     driver: "LAN_2_0"
     collectors:
     - dcmi
+  powersupplies:
+    # Use these settings when scraped with module=powersupplies. Supermicro
+    # servers usually have their power supplies here; JBOD shelves use bus 0x03.
+    user: "admin_user"
+    pass: "another_pw"
+    privilege: "admin"
+    driver: "LAN_2_0"
+    collectors:
+    - pmbus
+    power_supplies:
+    - name: "1"
+      bus: 0x07
+      address: 0x78
+    - name: "2"
+      bus: 0x07
+      address: 0x7a
+    # Also report each supply's maker, model and serial. Some BMCs then drop
+    # the read that follows, so it is off unless set.
+    power_supply_info: false
   thatspecialhost:
     # Use these settings when scraped with module=thatspecialhost.
     user: "some_user"
