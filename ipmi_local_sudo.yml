@@ -4,7 +4,7 @@
 # elevate privileges for access to the IPMI interface.
 modules:
   default:
-    # Available collectors are bmc, bmc-watchdog, ipmi, chassis, dcmi, sel, sel-events and sm-lan-mode
+    # Available collectors are bmc, bmc-watchdog, ipmi, chassis, dcmi, sel, sel-events, sm-lan-mode and sm-fan
     collectors:
       - ipmi
       - sel
