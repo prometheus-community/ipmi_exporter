@@ -1,7 +1,7 @@
 Prometheus IPMI Exporter
 ========================
 
-[![Build Status](https://github.com/prometheus-communit/ipmi_exporter/actions/workflows/ci.yml/badge.svg)](https://github.com/prometheus-communit/ipmi_exporter/actions/workflows/ci.yml)
+[![Build Status](https://github.com/prometheus-community/ipmi_exporter/actions/workflows/ci.yml/badge.svg)](https://github.com/prometheus-community/ipmi_exporter/actions/workflows/ci.yml)
 
 This is an IPMI exporter for [Prometheus][prometheus].
 
