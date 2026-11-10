@@ -134,6 +134,67 @@ func (c IPMINativeCollector) Args() []string {
 	return []string{}
 }
 
+// discreteSensorState returns the worst state of the asserted events of a
+// discrete sensor, or NaN if one of them is unknown.
+func discreteSensorState(typ ipmitypes.EventReadingType, sensorType ipmitypes.SensorType, offsets []uint8) float64 {
+	state := 0.0
+	for _, offset := range offsets {
+		s := eventState(typ, sensorType, offset)
+		if math.IsNaN(s) {
+			return s
+		}
+		state = math.Max(state, s)
+	}
+	return state
+}
+
+// eventStateOverrides are events that go-ipmi lacks or rates differently than
+// FreeIPMI.
+var eventStateOverrides = []struct {
+	typ        ipmitypes.EventReadingType
+	sensorType ipmitypes.SensorType
+	offset     uint8
+	state      float64
+}{
+	{ipmitypes.EventReadingTypeState, ipmitypes.SensorTypePhysicalSecurity, 1, 2},
+	{ipmitypes.EventReadingTypeSensorSpecific, ipmitypes.SensorTypeBaseOSBootInstallationStatus, 6, 1},
+	{ipmitypes.EventReadingTypeSensorSpecific, ipmitypes.SensorTypeSystemACPIPowerState, 13, 2},
+	{ipmitypes.EventReadingTypeSensorSpecific, ipmitypes.SensorTypeWatchdog2, 4, 0},
+	{ipmitypes.EventReadingTypeSensorSpecific, ipmitypes.SensorTypeWatchdog2, 5, 0},
+	{ipmitypes.EventReadingTypeSensorSpecific, ipmitypes.SensorTypeWatchdog2, 6, 0},
+	{ipmitypes.EventReadingTypeSensorSpecific, ipmitypes.SensorTypeWatchdog2, 7, 0},
+}
+
+// eventState returns the state of an asserted event, or NaN if it is unknown.
+func eventState(typ ipmitypes.EventReadingType, sensorType ipmitypes.SensorType, offset uint8) float64 {
+	for _, o := range eventStateOverrides {
+		if o.typ == typ && o.sensorType == sensorType && o.offset == offset {
+			return o.state
+		}
+	}
+	event := typ.EventForOffset(sensorType, offset)
+	if event == nil {
+		return math.NaN()
+	}
+	if typ != ipmitypes.EventReadingTypeSensorSpecific {
+		// go-ipmi rates generic events without severity for the sensor type as info
+		_, ok := event.AssertionSeverityMap[sensorType]
+		_, okDefault := event.AssertionSeverityMap[ipmitypes.SensorTypeReserved]
+		if !ok && !okDefault {
+			return math.NaN()
+		}
+	}
+	switch typ.EventSeverity(sensorType, ipmitypes.EventData{EventData1: offset}, ipmitypes.EventDirAssertion) {
+	case ipmitypes.EventSeverityInfo, ipmitypes.EventSeverityOK:
+		return 0
+	case ipmitypes.EventSeverityWarning, ipmitypes.EventSeverityDegraded, ipmitypes.EventSeverityNonFatal:
+		return 1
+	case ipmitypes.EventSeverityCritical:
+		return 2
+	}
+	return math.NaN()
+}
+
 func (c IPMINativeCollector) Collect(_ freeipmi.Result, ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	excludeIDs := target.config.ExcludeSensorIDs
 	targetHost := targetName(target.host)
@@ -173,14 +234,19 @@ func (c IPMINativeCollector) Collect(_ freeipmi.Result, ch chan<- prometheus.Met
 		case "N/A":
 			state = math.NaN()
 		default:
-			// TODO handle threshold sensor data
-			logger.Error(
-				"Unknown sensor state",
-				"target", targetHost,
-				"state", data.Status(),
-				"sensor_id", strconv.FormatInt(int64(data.Number), 10),
-			)
+			// discrete sensors have no threshold status, go-ipmi returns a hexdump
 			state = math.NaN()
+			if !data.IsThreshold() {
+				state = discreteSensorState(data.EventReadingType, data.SensorType, data.DiscreteActiveEvents())
+			}
+			if math.IsNaN(state) {
+				logger.Error(
+					"Unknown sensor state",
+					"target", targetHost,
+					"state", data.Status(),
+					"sensor_id", strconv.FormatInt(int64(data.Number), 10),
+				)
+			}
 		}
 
 		logger.Debug("Got values", "target", targetHost, "data", fmt.Sprintf("%+v", data))
