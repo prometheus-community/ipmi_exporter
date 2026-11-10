@@ -1,5 +1,4 @@
-# Maintainers
+<!-- Generated from https://github.com/prometheus/org-infra/blob/main/team-members.yaml; edit the catalog instead. -->
 
-General maintainers:
-* Conrad Hoffmann (ch@bitfehler.net / @bitfehler)
-* Ben Kochie (superq@gmail.com / @SuperQ)
+* Conrad Hoffmann <ch@bitfehler.net> @bitfehler
+* Ben Kochie <superq@gmail.com> @superq
