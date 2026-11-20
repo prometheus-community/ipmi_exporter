@@ -1,5 +1,10 @@
 ## next
 
+* Fix native BMC watchdog countdown metrics being reported in 100ms units
+  instead of seconds
+* Fix help string of the `bmc_watchdog_current_countdown_seconds` metric
+
+
 ## 1.10.1 / 2025-07-11
 
 * Fix panic in native BMC collector (#267)
