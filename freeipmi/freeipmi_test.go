@@ -16,6 +16,7 @@ package freeipmi
 import (
 	"context"
 	"log/slog"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -124,5 +125,36 @@ func TestExecuteContextTargetAppended(t *testing.T) {
 	}
 	if got := strings.TrimSpace(string(result.output)); got != "-h 10.0.0.1" {
 		t.Errorf("expected trailing '-h 10.0.0.1', got %q", got)
+	}
+}
+
+// TestExecuteContextInputReachesStdin: the requests reach the tool.
+func TestExecuteContextInputReachesStdin(t *testing.T) {
+	input := "0x00 0x06 0x52 0x07 0x78 0x02 0x97\n0x00 0x06 0x52 0x07 0x7a 0x02 0x97\n"
+	result := ExecuteContextInput(context.Background(), "/bin/sh", []string{"-c", "cat", "sh"}, "", "", []byte(input), testLogger)
+
+	if result.err != nil {
+		t.Fatalf("unexpected error: %v (output: %q)", result.err, result.output)
+	}
+	if string(result.output) != input {
+		t.Errorf("input did not arrive on stdin: got %q, want %q", result.output, input)
+	}
+}
+
+// TestGetRawResponses: one reply per request, in order.
+func TestGetRawResponses(t *testing.T) {
+	result := Result{output: []byte("rcvd: 52 00 17 \nrcvd: 52 83 \nrcvd: 52 00 64 F2 \n")}
+
+	got, err := GetRawResponses(result)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	want := [][]string{{"52", "00", "17"}, {"52", "83"}, {"52", "00", "64", "F2"}}
+	if !slices.EqualFunc(got, want, slices.Equal[[]string]) {
+		t.Errorf("got %q, want %q", got, want)
+	}
+
+	if _, err := GetRawResponses(Result{output: []byte("rcvd: 52 00 17\nipmi_cmd_raw: connection timeout\n")}); err == nil {
+		t.Error("expected an error for output that isn't a reply")
 	}
 }
