@@ -20,6 +20,8 @@ These metrics provide data about the scrape itself:
      will not be available
    - `dcmi`: collects DCMI data, currently only power consumption. If it fails,
      power consumption metrics (see below) will not be available
+   - `pmbus`: collects power supply readings. If it fails, power supply metrics
+     (see below) will not be available
    - `bmc`: collects BMC details. If it fails, BMC info metrics (see below)
      will not be available
    - `bmc-watchdog`: collects status of the watchdog. If it fails, BMC watchdog
@@ -113,6 +115,37 @@ The metric `ipmi_dcmi_power_consumption_watts` can be used to monitor the live
 power consumption of the machine in Watts. If in doubt, this metric should be
 used over any of the sensor data (see below), even if their name might suggest
 that they measure the same thing. This metric has no labels.
+
+## Power supplies
+
+These metrics are only provided if the `pmbus` collector is enabled (it isn't by
+default).
+
+They come from each power supply, read through the BMC. Where the supplies are
+differs between boards, so each module lists them under `power_supplies`:
+
+    power_supplies:
+    - name: "1"
+      bus: 0x07
+      address: 0x78
+    - name: "2"
+      bus: 0x07
+      address: 0x7a
+
+Supermicro servers usually have them there; Supermicro JBOD shelves use bus
+`0x03`. `name` is the `psu` label, and defaults to the supply's place in the
+list. A supply that doesn't answer is left out.
+
+`power_supply_info: true` also asks each supply for its maker, model and serial.
+Some BMCs then drop the read that follows, so it is off by default.
+
+ - `ipmi_psu_input_watts` and `ipmi_psu_output_watts`
+ - `ipmi_psu_input_volts` and `ipmi_psu_input_amperes`
+ - `ipmi_psu_output_volts` and `ipmi_psu_output_amperes`
+ - `ipmi_psu_temperature_celsius`, with a `sensor` label
+ - `ipmi_psu_fan_speed_rpm`
+ - `ipmi_psu_info`, with `manufacturer`, `model` and `serial` labels, only with
+   `power_supply_info` on
 
 ## System event log (SEL) info
 

@@ -127,6 +127,12 @@ func Execute(cmd string, args []string, config, target string, logger *slog.Logg
 // tool's process group receives SIGTERM; if it still has not let go of its
 // output pipes after waitDelay, it is killed.
 func ExecuteContext(ctx context.Context, cmd string, args []string, config, target string, logger *slog.Logger) Result {
+	return ExecuteContextInput(ctx, cmd, args, config, target, nil, logger)
+}
+
+// ExecuteContextInput is ExecuteContext that also hands the tool requests,
+// which ipmi-raw then sends in one login.
+func ExecuteContextInput(ctx context.Context, cmd string, args []string, config, target string, input []byte, logger *slog.Logger) Result {
 	// The FreeIPMI config is handed over on an inherited anonymous pipe: the
 	// read end becomes fd 3 in the child (first ExtraFiles entry), addressed
 	// as /dev/fd/3 — available on every unix platform this package builds for,
@@ -148,6 +154,9 @@ func ExecuteContext(ctx context.Context, cmd string, args []string, config, targ
 
 	c := exec.CommandContext(ctx, cmd, args...)
 	c.ExtraFiles = []*os.File{r}
+	if input != nil {
+		c.Stdin = bytes.NewReader(input)
+	}
 	// Run the tool in its own process group so cancellation can signal the
 	// whole group, not just the direct child.
 	c.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
@@ -359,6 +368,28 @@ func GetSELInfoFreeSpace(ipmiOutput Result) (float64, error) {
 		return -1, err
 	}
 	return strconv.ParseFloat(value, 64)
+}
+
+// GetRawResponses returns each reply from an ipmi-raw run, in order.
+func GetRawResponses(ipmiOutput Result) ([][]string, error) {
+	if ipmiOutput.err != nil {
+		return nil, fmt.Errorf("%s: %s", ipmiOutput.err, ipmiOutput.output)
+	}
+	strOutput := strings.Trim(string(ipmiOutput.output), " \r\n")
+	if strOutput == "" {
+		return nil, fmt.Errorf("no raw response")
+	}
+
+	var responses [][]string
+	for line := range strings.SplitSeq(strOutput, "\n") {
+		line = strings.Trim(line, " \r")
+		if !strings.HasPrefix(line, "rcvd: ") {
+			return nil, fmt.Errorf("unexpected raw response: %s", line)
+		}
+		responses = append(responses, strings.Fields(line[6:]))
+	}
+
+	return responses, nil
 }
 
 func GetRawOctets(ipmiOutput Result) ([]string, error) {
