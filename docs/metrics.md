@@ -119,7 +119,7 @@ that they measure the same thing. This metric has no labels.
 These metrics are only provided if the `sel` collector is enabled (it isn't by
 default).
 
-The metric `ipmi_sel_logs_count` contains the current number of entries in the
+The metric `ipmi_sel_entries` contains the current number of entries in the
 SEL. It is a gauge, as the SEL can be cleared at any time. This metric has no
 labels.
 
