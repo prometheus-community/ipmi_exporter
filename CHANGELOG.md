@@ -1,5 +1,7 @@
 ## next
 
+* Replace invalid UTF-8 in FreeIPMI output so a single sensor name no longer fails the whole scrape
+
 ## 1.10.1 / 2025-07-11
 
 * Fix panic in native BMC collector (#267)
