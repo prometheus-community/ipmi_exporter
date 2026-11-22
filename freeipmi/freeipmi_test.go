@@ -19,6 +19,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 )
 
 var testLogger = slog.New(slog.DiscardHandler)
@@ -124,5 +125,55 @@ func TestExecuteContextTargetAppended(t *testing.T) {
 	}
 	if got := strings.TrimSpace(string(result.output)); got != "-h 10.0.0.1" {
 		t.Errorf("expected trailing '-h 10.0.0.1', got %q", got)
+	}
+}
+
+func TestGetSensorDataReplacesInvalidUTF8(t *testing.T) {
+	// BMCs can report sensor names in a single-byte encoding. The values end
+	// up as label values, which must be valid UTF-8.
+	out := Result{output: []byte("1,Temp \xb0C,Temperature,Nominal,42.00,C,'OK'\n" +
+		"2,Fan \xe9,Fan,Nominal,5000.00,RPM,'OK'\n")}
+
+	data, err := GetSensorData(out, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(data) != 2 {
+		t.Fatalf("expected 2 sensors, got %d", len(data))
+	}
+	for _, d := range data {
+		if !utf8.ValidString(d.Name) {
+			t.Errorf("sensor %d name %q is not valid UTF-8", d.ID, d.Name)
+		}
+	}
+	if want := "Temp �C"; data[0].Name != want {
+		t.Errorf("expected name %q, got %q", want, data[0].Name)
+	}
+}
+
+func TestGetSELEventsReplacesInvalidUTF8(t *testing.T) {
+	out := Result{output: []byte("3,Jan-01-2024,10:00:00,Sensor #1,Memory,Warn\xe9ing,Correctable memory error\n")}
+
+	events, err := GetSELEvents(out)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(events) != 1 {
+		t.Fatalf("expected 1 event, got %d", len(events))
+	}
+	if !utf8.ValidString(events[0].State) {
+		t.Errorf("event state %q is not valid UTF-8", events[0].State)
+	}
+}
+
+func TestGetValueReplacesInvalidUTF8(t *testing.T) {
+	out := Result{output: []byte("Timer Use: SMS/OS \xe9\n")}
+
+	use, err := GetBMCWatchdogTimerUse(out)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !utf8.ValidString(use) {
+		t.Errorf("timer use %q is not valid UTF-8", use)
 	}
 }

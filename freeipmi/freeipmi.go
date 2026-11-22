@@ -101,6 +101,13 @@ func contains(s []int64, elm int64) bool {
 	return slices.Contains(s, elm)
 }
 
+// toValidUTF8 replaces invalid UTF-8 sequences in text reported by the BMC.
+// Many of these values become label values, and a single invalid one makes
+// the whole scrape fail.
+func toValidUTF8(s string) string {
+	return strings.ToValidUTF8(s, "\uFFFD")
+}
+
 func getValue(ipmiOutput []byte, regex *regexp.Regexp) (string, error) {
 	for line := range strings.SplitSeq(string(ipmiOutput), "\n") {
 		match := regex.FindStringSubmatch(line)
@@ -111,7 +118,7 @@ func getValue(ipmiOutput []byte, regex *regexp.Regexp) (string, error) {
 			if name != "value" {
 				continue
 			}
-			return match[i], nil
+			return toValidUTF8(match[i]), nil
 		}
 	}
 	return "", fmt.Errorf("could not find value in output: %s", string(ipmiOutput))
@@ -213,9 +220,9 @@ func GetSensorData(ipmiOutput Result, excludeSensorIDs []int64) ([]SensorData, e
 			continue
 		}
 
-		data.Name = line[1]
-		data.Type = line[2]
-		data.State = line[3]
+		data.Name = toValidUTF8(line[1])
+		data.Type = toValidUTF8(line[2])
+		data.State = toValidUTF8(line[3])
 
 		value := line[4]
 		if value != "N/A" {
@@ -227,8 +234,8 @@ func GetSensorData(ipmiOutput Result, excludeSensorIDs []int64) ([]SensorData, e
 			data.Value = math.NaN()
 		}
 
-		data.Unit = line[5]
-		data.Event = strings.Trim(line[6], "'")
+		data.Unit = toValidUTF8(line[5])
+		data.Event = toValidUTF8(strings.Trim(line[6], "'"))
 
 		result = append(result, data)
 	}
@@ -486,10 +493,10 @@ func GetSELEvents(ipmiOutput Result) ([]SELEventData, error) {
 			ID:    id,
 			Date:  result["date"],
 			Time:  result["time"],
-			Name:  result["name"],
-			Type:  result["type"],
-			State: result["state"],
-			Event: result["event"],
+			Name:  toValidUTF8(result["name"]),
+			Type:  toValidUTF8(result["type"]),
+			State: toValidUTF8(result["state"]),
+			Event: toValidUTF8(result["event"]),
 		})
 	}
 	return events, nil
